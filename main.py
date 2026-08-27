@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit Web AimLab - Glock Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Glock Edition", layout="centered")
 
-st.title("🎯 Web AimLab (Glock Edition)")
-st.caption("게임 시작 버튼을 누르면 입체 글록 권총과 함께 에임 연습이 시작됩니다!")
+st.title("🎯 3D Web AimLab (360° FPS & Reload)")
+st.caption("화면을 클릭하여 마우스를 잠그고 360도로 화면을 돌려보세요! (탄약 10발 / 재장전: R 키)")
 
 game_code = """
 <!DOCTYPE html>
@@ -12,45 +12,55 @@ game_code = """
 <head>
     <style>
         body {
-            background-color: #121212;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
             margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
-        .controls {
-            margin-bottom: 10px;
-        }
-        .btn {
-            background-color: #333;
-            color: white;
-            border: 1px solid #555;
-            padding: 6px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            border-radius: 4px;
-            margin: 0 4px;
-            transition: 0.2s;
-        }
-        .btn.active {
-            background-color: #007acc;
-            border-color: #0099ff;
-            font-weight: bold;
-        }
-        #gameCanvas {
-            background: radial-gradient(circle, #2a2d32 0%, #111215 100%);
-            border: 2px solid #3a3d45;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            cursor: crosshair;
-            display: block;
-            margin: 0 auto;
-            border-radius: 8px;
-        }
-        .info-panel {
+        #ui-panel {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            color: #fff;
             font-size: 18px;
-            margin-bottom: 8px;
-            font-weight: 500;
+            font-weight: bold;
+            z-index: 10;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+        #ammo-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: #00d2ff;
+            font-size: 28px;
+            font-weight: bold;
+            z-index: 10;
+            text-shadow: 0 0 10px rgba(0,210,255,0.5);
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            background-color: #ff3333;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 0 6px #ff0000;
+        }
+        #warningText {
+            position: absolute;
+            top: 60px;
+            width: 100%;
+            text-align: center;
+            color: #ffcc00;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 10;
+            text-shadow: 0 0 8px rgba(255,204,0,0.8);
         }
         #flashOverlay {
             position: absolute;
@@ -59,25 +69,18 @@ game_code = """
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.1s;
-            border-radius: 8px;
-        }
-        #warningText {
-            color: #ff3333;
-            font-weight: bold;
-            font-size: 20px;
-            height: 28px;
-            text-shadow: 0 0 8px rgba(255,0,0,0.6);
+            z-index: 20;
         }
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 15, 18, 0.85);
+            background: rgba(10, 10, 12, 0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-radius: 8px;
-            z-index: 10;
+            z-index: 30;
+            color: white;
         }
         .start-btn {
             background: linear-gradient(135deg, #007acc, #00d2ff);
@@ -89,271 +92,302 @@ game_code = """
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .start-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.6);
+            margin-top: 20px;
         }
     </style>
+
+    <!-- Three.js 3D 엔진 및 PointerLockControls 로드 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div class="controls">
-        <span>난이도 선택: </span>
-        <button class="btn" onclick="setDifficulty('easy', this)">EASY</button>
-        <button class="btn active" onclick="setDifficulty('medium', this)">MEDIUM</button>
-        <button class="btn" onclick="setDifficulty('hard', this)">HARD</button>
-    </div>
-
-    <div class="info-panel">
+    <div id="ui-panel">
         점수: <span id="score" style="color:#00d2ff">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%
     </div>
-    
+    <div id="ammo-panel">
+        AMMO: <span id="ammo">10</span> / 10 <span id="reloadMsg" style="font-size:16px; color:#ff3333; display:none;"><br>[R] 키를 눌러 재장전!</span>
+    </div>
+    <div id="crosshair"></div>
     <div id="warningText"></div>
+    <div id="flashOverlay"></div>
 
-    <div style="position: relative; display: inline-block;">
-        <canvas id="gameCanvas" width="720" height="460"></canvas>
-        <div id="flashOverlay"></div>
-        <div id="startOverlay">
-            <h1 style="margin-bottom: 20px; color: #00d2ff; text-shadow: 0 0 10px rgba(0,210,255,0.5);">AIMLAB GLOCK EDITION</h1>
-            <button class="start-btn" onclick="startGame()">게임 시작하기</button>
-        </div>
+    <div id="startOverlay">
+        <h1 style="color: #00d2ff; text-shadow: 0 0 10px rgba(0,210,255,0.5);">3D FPS AIMLAB (GLOCK)</h1>
+        <p style="color: #aaa; margin-top: -10px;">마우스로 고개를 돌려 360도 주변을 둘러보세요.</p>
+        <button class="start-btn" onclick="initGame()">게임 시작하기</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
-        const accuracyEl = document.getElementById('accuracy');
-        const warningEl = document.getElementById('warningText');
-        const flashOverlay = document.getElementById('flashOverlay');
-        const startOverlay = document.getElementById('startOverlay');
-
-        let isGameStarted = false;
-        let score = 0;
-        let totalShots = 0;
-        let hits = 0;
-
-        let targetRadius = 18;
-        let targetSpeed = 3.2;
+        let scene, camera, renderer;
         let targets = [];
-        const targetCount = 4;
+        let score = 0, totalShots = 0, hits = 0;
+        let ammo = 10;
+        let isReloading = false;
+        let isGameStarted = false;
 
+        // 마우스 시점 회전 관련 변수
+        let isPointerLocked = false;
+        let yaw = 0, pitch = 0;
+
+        // 3D 글록 모델 그룹 및 반동
+        let gunGroup;
+        let recoilZ = 0;
+
+        // 섬광탄 관련
+        let flashPos = new THREE.Vector3(0, 2, -10);
         let flashActive = false;
-        let flashInterval = null;
-        let isMouseOverCanvas = false;
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
-        let recoilY = 0;
 
-        function setDifficulty(level, btnElement) {
-            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-
-            if (level === 'easy') {
-                targetRadius = 24;
-                targetSpeed = 1.5;
-            } else if (level === 'medium') {
-                targetRadius = 18;
-                targetSpeed = 3.2;
-            } else if (level === 'hard') {
-                targetRadius = 12;
-                targetSpeed = 5.5;
-            }
-
-            targets.forEach(t => {
-                t.radius = targetRadius;
-                t.dx = (Math.random() - 0.5) * targetSpeed * 2;
-                t.dy = (Math.random() - 0.5) * targetSpeed * 2;
-            });
-        }
-
-        function startGame() {
-            startOverlay.style.display = 'none';
+        function initGame() {
+            document.getElementById('startOverlay').style.display = 'none';
             isGameStarted = true;
-            score = 0;
-            totalShots = 0;
-            hits = 0;
-            updateStats();
 
-            targets = [];
-            for (let i = 0; i < targetCount; i++) {
-                targets.push(new Target());
+            // 1. Three.js 기본 씬 & 카메라 설정
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x141419);
+            scene.fog = new THREE.FogExp2(0x141419, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
+            camera.position.set(0, 1.6, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, 500);
+            document.body.appendChild(renderer.domElement);
+
+            // 조명
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            // 격자 바닥 & 3D 공간 벽면
+            const gridHelper = new THREE.GridHelper(60, 30, 0x00d2ff, 0x333344);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+            // 2. 3D 글록(Glock) 권총 생성 및 카메라 고정
+            create3DGlock();
+
+            // 3. 타겟 구체 생성
+            for (let i = 0; i < 5; i++) {
+                createTarget();
             }
 
-            if (flashInterval) clearInterval(flashInterval);
-            flashInterval = setInterval(() => {
-                triggerFlashWarning();
-            }, 9000);
+            // 4. 마우스 이동 감지 (360도 화면 회전)
+            renderer.domElement.addEventListener('click', () => {
+                renderer.domElement.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = (document.pointerLockElement === renderer.domElement);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isPointerLocked) return;
+                yaw -= e.movementX * 0.0022;
+                pitch -= e.movementY * 0.0022;
+                pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+
+                camera.rotation.order = "YXZ";
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+            });
+
+            // 5. 클릭(사격) 및 R키(재장전) 입력
+            document.addEventListener('mousedown', (e) => {
+                if (e.button === 0) shoot();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') reload();
+            });
+
+            // 6. 섬광탄 타이머 (10초 주기)
+            setInterval(triggerFlash, 10000);
+
+            animate();
         }
 
-        class Target {
-            constructor() {
-                this.radius = targetRadius;
-                this.x = Math.random() * (canvas.width - 100) + 50;
-                this.y = Math.random() * (canvas.height - 200) + 50;
-                this.dx = (Math.random() - 0.5) * targetSpeed * 2;
-                this.dy = (Math.random() - 0.5) * targetSpeed * 2;
-            }
+        // 3D 글록 권총 가공 및 조립
+        function create3DGlock() {
+            gunGroup = new THREE.Group();
 
-            draw() {
-                let grad = ctx.createRadialGradient(
-                    this.x - this.radius * 0.3, this.y - this.radius * 0.3, this.radius * 0.1,
-                    this.x, this.y, this.radius
-                );
-                grad.addColorStop(0, '#80e5ff');
-                grad.addColorStop(0.5, '#00a8ff');
-                grad.addColorStop(1, '#004488');
+            // 슬라이드 (상부)
+            const slideGeo = new THREE.BoxGeometry(0.12, 0.12, 0.45);
+            const slideMat = new THREE.MeshStandardMaterial({ color: 0x222225, roughness: 0.3 });
+            const slide = new THREE.Mesh(slideGeo, slideMat);
+            slide.position.set(0, 0, 0);
+            gunGroup.add(slide);
 
-                ctx.save();
-                ctx.shadowColor = '#00a8ff';
-                ctx.shadowBlur = 12;
+            // 프레임/그립 (하부)
+            const gripGeo = new THREE.BoxGeometry(0.1, 0.28, 0.15);
+            const gripMat = new THREE.MeshStandardMaterial({ color: 0x111113, roughness: 0.8 });
+            const grip = new THREE.Mesh(gripGeo, gripMat);
+            grip.position.set(0, -0.15, 0.1);
+            grip.rotation.x = 0.2;
+            gunGroup.add(grip);
 
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-                ctx.restore();
-            }
+            // 야광 가늠쇠
+            const sightGeo = new THREE.BoxGeometry(0.015, 0.02, 0.015);
+            const sightMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+            const sight = new THREE.Mesh(sightGeo, sightMat);
+            sight.position.set(0, 0.07, -0.2);
+            gunGroup.add(sight);
 
-            update() {
-                this.x += this.dx;
-                this.y += this.dy;
-
-                if (this.x - this.radius < 10 || this.x + this.radius > canvas.width - 10) this.dx *= -1;
-                if (this.y - this.radius < 10 || this.y + this.radius > canvas.height - 120) this.dy *= -1;
-
-                this.draw();
-            }
+            // 카메라 하단 우측에 고정
+            gunGroup.position.set(0.25, -0.22, -0.5);
+            camera.add(gunGroup);
+            scene.add(camera);
         }
 
-        function drawGlock() {
-            ctx.save();
-            
-            let gunBaseX = canvas.width / 2 + (mouseX - canvas.width / 2) * 0.12;
-            let gunBaseY = canvas.height + recoilY;
+        function createTarget() {
+            const radius = 0.5;
+            const geo = new THREE.SphereGeometry(radius, 32, 32);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0x00a8ff,
+                emissive: 0x004488,
+                roughness: 0.2
+            });
+            const target = new THREE.Mesh(geo, mat);
 
-            ctx.translate(gunBaseX, gunBaseY);
+            // 360도 공간 상 정면/측면에 무작위 생성
+            target.position.x = (Math.random() - 0.5) * 16;
+            target.position.y = Math.random() * 3 + 1;
+            target.position.z = -Math.random() * 12 - 4;
 
-            // 1. 하부 프레임 및 그립 (Grip)
-            let frameGrad = ctx.createLinearGradient(-25, 0, 25, 0);
-            frameGrad.addColorStop(0, '#151516');
-            frameGrad.addColorStop(0.5, '#28282b');
-            frameGrad.addColorStop(1, '#111112');
+            target.userData = {
+                dx: (Math.random() - 0.5) * 0.04,
+                dy: (Math.random() - 0.5) * 0.04
+            };
 
-            ctx.fillStyle = frameGrad;
-            ctx.beginPath();
-            ctx.moveTo(-18, -25);
-            ctx.lineTo(-12, 70);
-            ctx.lineTo(22, 70);
-            ctx.lineTo(16, -25);
-            ctx.closePath();
-            ctx.fill();
-
-            // 2. 상부 메탈 슬라이드 (Slide)
-            let slideGrad = ctx.createLinearGradient(-35, -80, 35, -80);
-            slideGrad.addColorStop(0, '#222326');
-            slideGrad.addColorStop(0.3, '#4f5259');
-            slideGrad.addColorStop(0.7, '#383a3f');
-            slideGrad.addColorStop(1, '#191a1c');
-
-            ctx.fillStyle = slideGrad;
-            ctx.fillRect(-32, -80, 64, 58);
-
-            // 3. 총열 구멍 (Muzzle Barrel)
-            ctx.fillStyle = '#050505';
-            ctx.beginPath();
-            ctx.arc(0, -60, 9, 0, Math.PI * 2);
-            ctx.fill();
-
-            // 4. 조준기 (가늠자 & 야광 가늠쇠)
-            ctx.fillStyle = '#0a0a0b';
-            ctx.fillRect(-7, -84, 14, 5);
-            
-            ctx.fillStyle = '#39ff14'; // 야광 그린 도트
-            ctx.fillRect(-2, -84, 4, 3);
-
-            if (recoilY < 0) {
-                recoilY += 2;
-            }
-
-            ctx.restore();
+            scene.add(target);
+            targets.push(target);
         }
 
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
+        // 사격 로직 (10발 제한)
+        function shoot() {
+            if (!isPointerLocked || isReloading) return;
 
-        canvas.addEventListener('mousedown', (e) => {
-            if (!isGameStarted) return;
+            if (ammo <= 0) {
+                document.getElementById('reloadMsg').style.display = 'inline';
+                return;
+            }
 
+            ammo--;
             totalShots++;
-            recoilY = -14;
+            updateUI();
 
-            const rect = canvas.getBoundingClientRect();
-            const mX = e.clientX - rect.left;
-            const mY = e.clientY - rect.top;
+            // 반동 효과
+            recoilZ = 0.12;
 
-            for (let i = 0; i < targets.length; i++) {
-                const t = targets[i];
-                const dist = Math.hypot(mX - t.x, mY - t.y);
+            // 레이캐스트 사격 감지
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
-                if (dist < t.radius) {
-                    score += 100;
-                    hits++;
-                    targets[i] = new Target();
-                    break;
-                }
+            const intersects = raycaster.intersectObjects(targets);
+
+            if (intersects.length > 0) {
+                const hitObj = intersects[0].object;
+                scene.remove(hitObj);
+                targets = targets.filter(t => t !== hitObj);
+                
+                score += 100;
+                hits++;
+                updateUI();
+                createTarget(); // 타겟 재생성
             }
-            updateStats();
-        });
 
-        canvas.addEventListener('mouseenter', () => isMouseOverCanvas = true);
-        canvas.addEventListener('mouseleave', () => isMouseOverCanvas = false);
-
-        function updateStats() {
-            scoreEl.innerText = score;
-            const acc = totalShots > 0 ? ((hits / totalShots) * 100).toFixed(1) : 100;
-            accuracyEl.innerText = acc;
+            if (ammo === 0) {
+                document.getElementById('reloadMsg').style.display = 'inline';
+            }
         }
 
-        function triggerFlashWarning() {
-            if (!isGameStarted || flashActive) return;
-            warningEl.innerText = "⚠️ FLASHBANG INCOMING! (마우스를 창 밖으로 피하세요!)";
+        // 재장전 로직
+        function reload() {
+            if (isReloading || ammo === 10) return;
+            isReloading = true;
+            document.getElementById('reloadMsg').innerText = "재장전 중...";
+
+            // 재장전 총기 애니메이션 (아래로 내렸다가 올림)
+            let reloadTimer = 0;
+            const reloadInterval = setInterval(() => {
+                reloadTimer += 0.05;
+                gunGroup.position.y = -0.22 - Math.sin(reloadTimer * Math.PI) * 0.2;
+
+                if (reloadTimer >= 1.0) {
+                    clearInterval(reloadInterval);
+                    ammo = 10;
+                    isReloading = false;
+                    document.getElementById('reloadMsg').style.display = 'none';
+                    document.getElementById('reloadMsg').innerText = "[R] 키를 눌러 재장전!";
+                    updateUI();
+                }
+            }, 50);
+        }
+
+        function updateUI() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('ammo').innerText = ammo;
+            const acc = totalShots > 0 ? ((hits / totalShots) * 100).toFixed(1) : 100;
+            accuracyEl = document.getElementById('accuracy').innerText = acc;
+        }
+
+        // 섬광탄 피하기 시스템
+        function triggerFlash() {
+            if (!isGameStarted) return;
+            document.getElementById('warningText').innerText = "⚠️ FLASHBANG INCOMING! (고개를 돌려 피하세요!)";
 
             setTimeout(() => {
                 detonateFlash();
-            }, 1300);
+            }, 1400);
         }
 
         function detonateFlash() {
-            warningEl.innerText = "";
+            document.getElementById('warningText').innerText = "";
 
-            if (isMouseOverCanvas && isGameStarted) {
+            // 플레이어 카메라 정면 방향과 섬광탄 방향 각도 비교
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+
+            const toFlash = flashPos.clone().sub(camera.position).normalize();
+            const dot = camDir.dot(toFlash);
+
+            // 정면(dot > 0.3)을 바라보고 있으면 눈뽕 적구
+            if (dot > 0.3) {
+                const flashOverlay = document.getElementById('flashOverlay');
                 flashOverlay.style.opacity = '1';
                 setTimeout(() => {
                     flashOverlay.style.opacity = '0';
-                }, 1600);
+                }, 1800);
             }
         }
 
+        // 실시간 3D 렌더링 루프
         function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            if (isGameStarted) {
-                targets.forEach(t => t.update());
-                drawGlock();
+            requestAnimationFrame(animate);
+
+            // 반동 회복
+            if (recoilZ > 0) {
+                recoilZ -= 0.015;
+                if (recoilZ < 0) recoilZ = 0;
+            }
+            if (gunGroup) {
+                gunGroup.position.z = -0.5 + recoilZ;
             }
 
-            requestAnimationFrame(animate);
-        }
+            // 타겟 이동 애니메이션
+            targets.forEach(t => {
+                t.position.x += t.userData.dx;
+                t.position.y += t.userData.dy;
 
-        animate();
+                if (Math.abs(t.position.x) > 10) t.userData.dx *= -1;
+                if (t.position.y < 0.8 || t.position.y > 4.5) t.userData.dy *= -1;
+            });
+
+            renderer.render(scene, camera);
+        }
     </script>
 </body>
 </html>
 """
 
-components.html(game_code, height=620)
+components.html(game_code, height=540)
