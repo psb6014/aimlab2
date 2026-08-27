@@ -1,164 +1,193 @@
-from ursina import *
-from ursina.prefabs.first_person_controller import FirstPersonController
-import random
+import streamlit as st
+import streamlit.components.v1 as components
 
-app = Ursina()
+st.set_page_config(page_title="Streamlit Web AimLab", layout="centered")
 
-# 1. 화면 및 기본 환경 설정
-window.title = "Python AimLab Clone"
-window.fps_counter.enabled = True
-window.borderless = False
+st.title("🎯 Web AimLab (Streamlit Edition)")
+st.caption("화면에 나타나는 타겟을 클릭하세요! 중간에 나오는 섬광탄(Flash)은 고개를 돌리거나(마우스 이탈) 회피해야 합니다.")
 
-# 바닥 및 배경
-ground = Entity(model='plane', scale=(100, 1, 100), color=color.gray, texture='white_cube')
-Sky()
+# HTML5 / JavaScript 기반 에임 연습 게임 코드
+game_code = """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            user-select: none;
+        }
+        #gameCanvas {
+            background-color: #2b2b2b;
+            border: 3px solid #444;
+            cursor: crosshair;
+            display: block;
+            margin: 10px auto;
+        }
+        .info-panel {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        #flashOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+        #warningText {
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 24px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        점수: <span id="score">0</span> | 명중률: <span id="accuracy">100</span>%
+    </div>
+    <div id="warningText"></div>
+    <div style="position: relative; display: inline-block;">
+        <canvas id="gameCanvas" width="700" height="450"></canvas>
+        <div id="flashOverlay"></div>
+    </div>
 
-# 2. 난이도 및 점수 설정
-DIFFICULTY = 'Medium'
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const accuracyEl = document.getElementById('accuracy');
+        const warningEl = document.getElementById('warningText');
+        const flashOverlay = document.getElementById('flashOverlay');
 
-if DIFFICULTY == 'Easy':
-    TARGET_SCALE = 1.0
-    TARGET_SPEED = 1.5
-elif DIFFICULTY == 'Medium':
-    TARGET_SCALE = 0.6
-    TARGET_SPEED = 3.0
-else:  # Hard
-    TARGET_SCALE = 0.35
-    TARGET_SPEED = 5.0
+        let score = 0;
+        let totalShots = 0;
+        let hits = 0;
 
-score = 0
-score_text = Text(text=f"Score: {score} | Difficulty: {DIFFICULTY}", position=(-0.85, 0.45), scale=1.5, color=color.white)
+        // 타겟 설정
+        let targets = [];
+        const targetCount = 3;
 
-# 3. 플레이어 설정
-player = FirstPersonController(y=2, origin_y=-0.5)
-player.cursor.color = color.red
-mouse.locked = True  # 마우스를 화면 중앙에 고정
+        // 섬광탄 설정
+        let flashActive = false;
+        let flashWarning = false;
+        let isMouseOverCanvas = false;
 
-# 4. 글록(Glock) 권총 3D 모델링
-gun = Entity(
-    parent=camera,
-    model='cube',
-    color=color.dark_gray,
-    scale=(0.15, 0.2, 0.7),
-    position=(0.5, -0.3, 0.8)
-)
-gun_barrel = Entity(
-    parent=gun,
-    model='cube',
-    color=color.black,
-    scale=(0.8, 0.6, 1.2),
-    position=(0, 0.2, 0.2)
-)
+        class Target {
+            constructor() {
+                this.radius = 20;
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = Math.random() * (canvas.height - this.radius * 2) + this.radius;
+                this.dx = (Math.random() - 0.5) * 4;
+                this.dy = (Math.random() - 0.5) * 4;
+            }
 
-# 5. 오디오 예외 처리 (파일이 없어도 에러 없이 실행되도록 설정)
-try:
-    gunshot_sound = Audio('laser_1', autoplay=False, false_option=False)
-    hit_sound = Audio('pop', autoplay=False, false_option=False)
-except:
-    gunshot_sound = None
-    hit_sound = None
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#00d2ff';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+                ctx.closePath();
+            }
 
-# 6. 타겟 관리
-targets = []
+            update() {
+                this.x += this.dx;
+                this.y += this.dy;
 
-def create_target():
-    x = random.uniform(-6, 6)
-    y = random.uniform(1.5, 4.5)
-    z = random.uniform(8, 12)
-    
-    target = Entity(
-        model='sphere',
-        color=color.azure,
-        scale=TARGET_SCALE,
-        position=(x, y, z),
-        collider='sphere'
-    )
-    target.dir_x = random.choice([-1, 1]) * random.uniform(0.5, 1.0)
-    target.dir_y = random.choice([-1, 1]) * random.uniform(0.5, 1.0)
-    targets.append(target)
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.dx *= -1;
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.dy *= -1;
 
-for _ in range(5):
-    create_target()
+                this.draw();
+            }
+        }
 
-# 7. 플래시(섬광탄) 회피 시스템
-flash_warn = Text(text="FLASH BANG!", origin=(0, 0), scale=3, color=color.yellow, enabled=False)
-flash_screen = Entity(parent=camera.ui, model='quad', color=color.white, scale=(2, 2), enabled=False)
+        // 초기 타겟 생성
+        for (let i = 0; i < targetCount; i++) {
+            targets.push(new Target());
+        }
 
-flash_timer = 0
-flash_active = False
-flash_world_pos = Vec3(0, 0, 0)
+        // 사격 클릭 이벤트
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
 
-def trigger_flash():
-    global flash_active, flash_world_pos
-    flash_active = True
-    flash_warn.enabled = True
-    flash_world_pos = player.position + player.forward * 10 + Vec3(0, 2, 0)
-    invoke(detonate_flash, delay=1.5)
+            totalShots++;
+            let hit = false;
 
-def detonate_flash():
-    flash_warn.enabled = False
-    
-    cam_dir = camera.forward
-    target_dir = (flash_world_pos - camera.world_position).normalized()
-    dot_val = cam_dir.dot(target_dir)
-    
-    if dot_val > 0.4:
-        flash_screen.enabled = True
-        invoke(clear_flash, delay=2.0)
-    else:
-        global flash_active
-        flash_active = False
+            for (let i = 0; i < targets.length; i++) {
+                const t = targets[i];
+                const dist = Math.hypot(mouseX - t.x, mouseY - t.y);
 
-def clear_flash():
-    global flash_active
-    flash_screen.enabled = False
-    flash_active = False
+                if (dist < t.radius) {
+                    score += 100;
+                    hits++;
+                    hit = true;
+                    targets[i] = new Target(); // 맞춘 타겟 재생성
+                    break;
+                }
+            }
 
-# 8. 사격 처리
-def input(key):
-    global score
-    if key == 'left mouse down':
-        if gunshot_sound and gunshot_sound.clip:
-            gunshot_sound.play()
-        
-        # 총 반동
-        gun.animate_position((0.5, -0.3, 0.6), duration=0.04)
-        gun.animate_position((0.5, -0.3, 0.8), delay=0.04, duration=0.08)
-        
-        # 사격 레이캐스트
-        hit_info = raycast(camera.world_position, camera.forward, distance=50)
-        
-        if hit_info.hit and hit_info.entity in targets:
-            if hit_sound and hit_sound.clip:
-                hit_sound.play()
-            
-            hit_target = hit_info.entity
-            targets.remove(hit_target)
-            destroy(hit_target)
-            
-            score += 100
-            score_text.text = f"Score: {score} | Difficulty: {DIFFICULTY}"
-            create_target()
+            updateStats();
+        });
 
-# 9. 실시간 프레임 업데이트
-def update():
-    global flash_timer
-    
-    # 타겟 이동
-    for t in targets:
-        t.x += t.dir_x * TARGET_SPEED * time.dt
-        t.y += t.dir_y * TARGET_SPEED * time.dt
-        
-        if abs(t.x) > 7:
-            t.dir_x *= -1
-        if t.y < 1.0 or t.y > 5.5:
-            t.dir_y *= -1
+        canvas.addEventListener('mouseenter', () => isMouseOverCanvas = true);
+        canvas.addEventListener('mouseleave', () => isMouseOverCanvas = false);
 
-    # 섬광탄 주기
-    if not flash_active:
-        flash_timer += time.dt
-        if flash_timer > 10:
-            flash_timer = 0
-            trigger_flash()
+        function updateStats() {
+            scoreEl.innerText = score;
+            const acc = totalShots > 0 ? ((hits / totalShots) * 100).toFixed(1) : 100;
+            accuracyEl.innerText = acc;
+        }
 
-app.run()
+        // 주기적 섬광탄 이벤트 (8초마다 발생)
+        setInterval(() => {
+            triggerFlashWarning();
+        }, 8000);
+
+        function triggerFlashWarning() {
+            if (flashActive) return;
+            flashWarning = true;
+            warningEl.innerText = "⚠️ FLASHBANG INCOMING! (캔버스 밖으로 마우스를 피하세요!)";
+
+            setTimeout(() => {
+                detonateFlash();
+            }, 1200);
+        }
+
+        function detonateFlash() {
+            warningEl.innerText = "";
+            flashWarning = false;
+
+            // 마우스가 게임 화면(Canvas) 안에 있으면 섬광에 걸림
+            if (isMouseOverCanvas) {
+                flashOverlay.style.opacity = '1';
+                setTimeout(() => {
+                    flashOverlay.style.opacity = '0';
+                }, 1500);
+            }
+        }
+
+        // 메인 게임 루프
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            targets.forEach(t => t.update());
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
+"""
+
+# Streamlit에 HTML 게임 임베드
+components.html(game_code, height=580)
