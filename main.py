@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - AK-47 Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Multi-Weapon Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (Real AK-47 Edition)")
-st.caption("클래식 AK-47과 함께하는 고속 에임 연습! (30발 탄창 / R키: 재장전)")
+st.title("🎯 3D Web AimLab (Multi-Weapon Edition)")
+st.caption("고정 표적 정밀 타격 연습! 원하는 총기를 선택해 에임을 연마하세요.")
 
 game_code = """
 <!DOCTYPE html>
@@ -58,6 +58,7 @@ game_code = """
             z-index: 10;
             text-shadow: 0 0 10px rgba(0,0,0,0.8);
             pointer-events: none;
+            text-align: right;
         }
         #crosshair {
             position: absolute;
@@ -105,8 +106,8 @@ game_code = """
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(26, 29, 36, 0.92);
-            backdrop-filter: blur(5px);
+            background: rgba(26, 29, 36, 0.94);
+            backdrop-filter: blur(6px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -114,39 +115,46 @@ game_code = """
             z-index: 30;
             color: white;
         }
-        .diff-container {
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
+        .section-title {
+            color: #d4a359;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
         }
-        .diff-btn {
+        .btn-container {
+            display: flex;
+            gap: 12px;
+        }
+        .option-btn {
             background: #2b2f3a;
             color: #ece8e1;
             border: 2px solid #454c5e;
-            padding: 10px 24px;
-            font-size: 16px;
+            padding: 8px 18px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
             transition: 0.2s;
         }
-        .diff-btn.selected {
+        .option-btn.selected {
             background: #b87333;
             color: #fff;
             border-color: #d4a359;
-            box-shadow: 0 0 15px rgba(212,163,89,0.5);
+            box-shadow: 0 0 12px rgba(212,163,89,0.5);
         }
         .start-btn {
             background: linear-gradient(135deg, #b87333, #8b4513);
             color: white;
             border: none;
-            padding: 14px 45px;
-            font-size: 22px;
+            padding: 12px 40px;
+            font-size: 20px;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(139, 69, 19, 0.5);
-            margin-top: 10px;
+            margin-top: 20px;
         }
         .start-btn:hover {
             transform: scale(1.05);
@@ -160,20 +168,29 @@ game_code = """
         <div>점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
     </div>
     <div id="ammo-panel">
-        AMMO: <span id="ammo">30</span> / 30 <span id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;"><br>[R] 키를 눌러 재장전!</span>
+        AMMO: <span id="ammo">30</span> / <span id="maxAmmo">30</span>
+        <div id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;">[R] 키를 눌러 재장전!</div>
     </div>
     <div id="crosshair"></div>
     <div id="warningText"></div>
     <div id="flashOverlay"></div>
 
     <div id="startOverlay">
-        <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 5px; font-size: 36px;">REAL AK-47 AIMLAB</h1>
-        <p style="color: #a0a7b5; margin-bottom: 10px;">AK-47 소총으로 고속 이동 표적지를 정밀 타격하세요.</p>
-        
-        <div class="diff-container">
-            <button class="diff-btn" onclick="selectDiff('easy', this)">EASY</button>
-            <button class="diff-btn selected" onclick="selectDiff('normal', this)">NORMAL</button>
-            <button class="diff-btn" onclick="selectDiff('hard', this)">HARD (FAST)</button>
+        <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 2px; font-size: 32px;">3D AIMLAB STUDIO</h1>
+        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">표적을 조준하여 타격하세요. (맞출 때마다 과녁 위치가 이동합니다)</p>
+
+        <div class="section-title">GUN SELECT</div>
+        <div class="btn-container">
+            <button class="option-btn selected" onclick="selectWeapon('ak47', this)">AK-47</button>
+            <button class="option-btn" onclick="selectWeapon('kar98k', this)">Kar98k (Scope)</button>
+            <button class="option-btn" onclick="selectWeapon('famas', this)">FAMAS</button>
+        </div>
+
+        <div class="section-title">TARGET SIZE</div>
+        <div class="btn-container">
+            <button class="option-btn" onclick="selectDiff('easy', this)">LARGE</button>
+            <button class="option-btn selected" onclick="selectDiff('normal', this)">NORMAL</button>
+            <button class="option-btn" onclick="selectDiff('hard', this)">SMALL</button>
         </div>
 
         <button class="start-btn" onclick="initGame()">게 임 시 작</button>
@@ -184,36 +201,40 @@ game_code = """
         let targets = [];
         let score = 0, totalShots = 0, hits = 0;
         
-        const MAX_AMMO = 30;
-        let ammo = MAX_AMMO;
+        let selectedWeapon = 'ak47';
+        let maxAmmo = 30;
+        let ammo = 30;
+
         let isReloading = false;
         let isGameStarted = false;
         let flashInterval = null;
 
-        let currentDiff = 'normal';
-        let targetSpeed = 0.065;
         let targetRadius = 0.48;
-
         let mouse = new THREE.Vector2();
 
-        let akGroup, magazineMesh, muzzleFlashMesh;
+        let weaponGroup, magazineMesh, muzzleFlashMesh;
         let recoilZ = 0, recoilRotX = 0;
 
-        function selectDiff(diff, btn) {
-            currentDiff = diff;
-            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+        function selectWeapon(weapon, btn) {
+            selectedWeapon = weapon;
+            btn.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
 
-            if (diff === 'easy') {
-                targetSpeed = 0.04;
-                targetRadius = 0.6;
-            } else if (diff === 'normal') {
-                targetSpeed = 0.065;
-                targetRadius = 0.48;
-            } else if (diff === 'hard') {
-                targetSpeed = 0.13;
-                targetRadius = 0.35;
-            }
+            if (weapon === 'ak47') maxAmmo = 30;
+            else if (weapon === 'kar98k') maxAmmo = 5;
+            else if (weapon === 'famas') maxAmmo = 25;
+            
+            ammo = maxAmmo;
+            document.getElementById('maxAmmo').innerText = maxAmmo;
+        }
+
+        function selectDiff(diff, btn) {
+            btn.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            if (diff === 'easy') targetRadius = 0.65;
+            else if (diff === 'normal') targetRadius = 0.48;
+            else if (diff === 'hard') targetRadius = 0.32;
         }
 
         function initGame() {
@@ -222,14 +243,13 @@ game_code = """
             score = 0;
             totalShots = 0;
             hits = 0;
-            ammo = MAX_AMMO;
+            ammo = maxAmmo;
             isReloading = false;
             updateUI();
             document.getElementById('reloadMsg').style.display = 'none';
 
             if (!scene) {
                 scene = new THREE.Scene();
-                // 1. 회색 톤 배경 및 은은한 안개 설정
                 scene.background = new THREE.Color(0x282c35);
                 scene.fog = new THREE.FogExp2(0x282c35, 0.012);
 
@@ -241,7 +261,6 @@ game_code = """
                 renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                // 2. 조명 세팅 (총기가 입체적으로 돋보이게 리얼하게 배치)
                 const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
                 scene.add(ambientLight);
 
@@ -253,34 +272,27 @@ game_code = """
                 backLight.position.set(-5, 5, -10);
                 scene.add(backLight);
 
-                // 3. 입체적인 회색 룸 공간 생성 (바닥 + 격자 + 벽)
-                // 바닥
+                // 3D 공간 배치
                 const floorGeo = new THREE.PlaneGeometry(60, 60);
                 const floorMat = new THREE.MeshStandardMaterial({ color: 0x323742, roughness: 0.8 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
-                floor.position.y = 0;
                 scene.add(floor);
 
-                // 바닥 세련된 Grid
                 const gridHelper = new THREE.GridHelper(60, 30, 0xd4a359, 0x4a5160);
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 배경 입체 벽
                 const wallGeo = new THREE.PlaneGeometry(60, 30);
                 const wallMat = new THREE.MeshStandardMaterial({ color: 0x21252d, roughness: 0.6 });
                 const backWall = new THREE.Mesh(wallGeo, wallMat);
                 backWall.position.set(0, 15, -25);
                 scene.add(backWall);
 
-                // 벽면 패널 그리드 구조물 (입체감 증대)
                 const wallGrid = new THREE.GridHelper(60, 20, 0x5a6375, 0x3a404d);
                 wallGrid.rotation.x = Math.PI / 2;
                 wallGrid.position.set(0, 15, -24.9);
                 scene.add(wallGrid);
-
-                createAK47();
 
                 window.addEventListener('mousemove', (e) => {
                     const rect = renderer.domElement.getBoundingClientRect();
@@ -299,6 +311,11 @@ game_code = """
                 animate();
             }
 
+            // 선택된 총기 재생성
+            if (weaponGroup) camera.remove(weaponGroup);
+            buildWeaponModel(selectedWeapon);
+
+            // 초기 타겟 생성
             targets.forEach(t => scene.remove(t));
             targets = [];
             for (let i = 0; i < 5; i++) {
@@ -318,80 +335,126 @@ game_code = """
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        function createAK47() {
-            akGroup = new THREE.Group();
+        // 총기 3D 모델링 생성자 (AK-47, Kar98k, FAMAS)
+        function buildWeaponModel(type) {
+            weaponGroup = new THREE.Group();
 
             const steelMat = new THREE.MeshStandardMaterial({ color: 0x3d414a, roughness: 0.3, metalness: 0.85 });
-            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x25282e, roughness: 0.35, metalness: 0.9 });
+            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1f2228, roughness: 0.35, metalness: 0.9 });
             const woodMat = new THREE.MeshStandardMaterial({ color: 0x7a3a1d, roughness: 0.5, metalness: 0.1 });
             const magMat = new THREE.MeshStandardMaterial({ color: 0x2e323b, roughness: 0.35, metalness: 0.8 });
 
-            const bodyGeo = new THREE.BoxGeometry(0.065, 0.085, 0.42);
-            const mainBody = new THREE.Mesh(bodyGeo, steelMat);
-            akGroup.add(mainBody);
+            if (type === 'ak47') {
+                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.42), steelMat);
+                weaponGroup.add(mainBody);
 
-            const stockGeo = new THREE.BoxGeometry(0.05, 0.11, 0.36);
-            const stock = new THREE.Mesh(stockGeo, woodMat);
-            stock.position.set(0, -0.03, 0.38);
-            stock.rotation.x = -0.15;
-            akGroup.add(stock);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.36), woodMat);
+                stock.position.set(0, -0.03, 0.38);
+                stock.rotation.x = -0.15;
+                weaponGroup.add(stock);
 
-            const gripGeo = new THREE.BoxGeometry(0.045, 0.14, 0.06);
-            const grip = new THREE.Mesh(gripGeo, woodMat);
-            grip.position.set(0, -0.11, 0.1);
-            grip.rotation.x = 0.35;
-            akGroup.add(grip);
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.06), woodMat);
+                grip.position.set(0, -0.11, 0.1);
+                grip.rotation.x = 0.35;
+                weaponGroup.add(grip);
 
-            const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.065, 0.28), woodMat);
-            lowerHandguard.position.set(0, -0.01, -0.34);
-            akGroup.add(lowerHandguard);
+                const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.065, 0.28), woodMat);
+                lowerHandguard.position.set(0, -0.01, -0.34);
+                weaponGroup.add(lowerHandguard);
 
-            const upperHandguard = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.26, 12), woodMat);
-            upperHandguard.rotation.x = Math.PI / 2;
-            upperHandguard.position.set(0, 0.032, -0.33);
-            akGroup.add(upperHandguard);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), darkSteelMat);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0.01, -0.58);
+                weaponGroup.add(barrel);
 
-            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), darkSteelMat);
-            barrel.rotation.x = Math.PI / 2;
-            barrel.position.set(0, 0.01, -0.58);
-            akGroup.add(barrel);
+                magazineMesh = new THREE.Group();
+                const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), magMat);
+                magTop.position.set(0, -0.12, -0.02);
+                magTop.rotation.x = -0.28;
+                magazineMesh.add(magTop);
+                weaponGroup.add(magazineMesh);
 
-            const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.06, 0.05), steelMat);
-            gasBlock.position.set(0, 0.03, -0.65);
-            akGroup.add(gasBlock);
+            } else if (type === 'kar98k') {
+                // Kar98k 일체형 우드 스톡
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.085, 0.95), woodMat);
+                stock.position.set(0, -0.03, -0.1);
+                weaponGroup.add(stock);
 
-            const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.065, 0.03), darkSteelMat);
-            frontSight.position.set(0, 0.06, -0.88);
-            akGroup.add(frontSight);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.1, 12), darkSteelMat);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0.02, -0.45);
+                weaponGroup.add(barrel);
 
-            const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.035, 0.08), darkSteelMat);
-            rearSight.position.set(0, 0.06, -0.18);
-            akGroup.add(rearSight);
+                // 스코프 (Scope)
+                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.32, 16), darkSteelMat);
+                scopeBody.rotation.x = Math.PI / 2;
+                scopeBody.position.set(0, 0.08, -0.1);
+                weaponGroup.add(scopeBody);
 
-            magazineMesh = new THREE.Group();
-            const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), magMat);
-            magTop.position.set(0, -0.12, -0.02);
-            magTop.rotation.x = -0.28;
+                const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.15), steelMat);
+                scopeMount.position.set(0, 0.05, -0.1);
+                weaponGroup.add(scopeMount);
 
-            const magBottom = new THREE.Mesh(new THREE.BoxGeometry(0.043, 0.18, 0.075), magMat);
-            magBottom.position.set(0, -0.25, -0.07);
-            magBottom.rotation.x = -0.55;
+                // 볼트 손잡이
+                const boltHandle = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), darkSteelMat);
+                boltHandle.position.set(0.05, 0.03, 0.1);
+                weaponGroup.add(boltHandle);
 
-            magazineMesh.add(magTop);
-            magazineMesh.add(magBottom);
-            akGroup.add(magazineMesh);
+                magazineMesh = new THREE.Group(); // 약실 패널
+                weaponGroup.add(magazineMesh);
 
-            const flashGeo = new THREE.OctahedronGeometry(0.11, 0);
+            } else if (type === 'famas') {
+                // FAMAS 메인 메탈 바디
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.62), darkSteelMat);
+                weaponGroup.add(body);
+
+                // 상부 대형 캐링 핸들 (운반 손잡이)
+                const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.5), darkSteelMat);
+                handleTop.position.set(0, 0.12, -0.05);
+                weaponGroup.add(handleTop);
+
+                const handleSuppL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), darkSteelMat);
+                handleSuppL.position.set(0, 0.07, -0.28);
+                weaponGroup.add(handleSuppL);
+
+                const handleSuppR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), darkSteelMat);
+                handleSuppR.position.set(0, 0.07, 0.18);
+                weaponGroup.add(handleSuppR);
+
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.06), magMat);
+                grip.position.set(0, -0.11, -0.05);
+                grip.rotation.x = 0.3;
+                weaponGroup.add(grip);
+
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.4, 12), steelMat);
+                barrel.rotation.x = Math.PI / 2;
+                barrel.position.set(0, 0.01, -0.48);
+                weaponGroup.add(barrel);
+
+                // 불펍 탄창 (후방 배치)
+                magazineMesh = new THREE.Group();
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.18, 0.075), magMat);
+                mag.position.set(0, -0.12, 0.2);
+                magazineMesh.add(mag);
+                weaponGroup.add(magazineMesh);
+            }
+
+            const flashGeo = new THREE.OctahedronGeometry(0.12, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
-            muzzleFlashMesh.position.set(0, 0.01, -0.98);
-            akGroup.add(muzzleFlashMesh);
+            
+            if (type === 'kar98k') muzzleFlashMesh.position.set(0, 0.02, -1.0);
+            else if (type === 'famas') muzzleFlashMesh.position.set(0, 0.01, -0.68);
+            else muzzleFlashMesh.position.set(0, 0.01, -0.98);
 
-            akGroup.position.set(0.24, -0.24, -0.55);
-            camera.add(akGroup);
+            weaponGroup.add(muzzleFlashMesh);
+
+            weaponGroup.position.set(0.24, -0.24, -0.55);
+            camera.add(weaponGroup);
             scene.add(camera);
         }
 
+        // 고정 과녁 생성 (움직이지 않음)
         function createTarget() {
             const targetGroup = new THREE.Group();
 
@@ -428,14 +491,10 @@ game_code = """
             disc.rotation.x = Math.PI / 2;
             targetGroup.add(disc);
 
+            // 고정 무작위 위치 설정
             targetGroup.position.x = (Math.random() - 0.5) * 11;
-            targetGroup.position.y = Math.random() * 3.2 + 0.8;
+            targetGroup.position.y = Math.random() * 2.8 + 0.9;
             targetGroup.position.z = -Math.random() * 8 - 4;
-
-            targetGroup.userData = {
-                dx: (Math.random() - 0.5) * targetSpeed * 2.5,
-                dy: (Math.random() - 0.5) * targetSpeed * 2.5
-            };
 
             scene.add(targetGroup);
             targets.push(targetGroup);
@@ -445,7 +504,7 @@ game_code = """
             if (isReloading || !isGameStarted) return;
 
             if (ammo <= 0) {
-                document.getElementById('reloadMsg').style.display = 'inline';
+                document.getElementById('reloadMsg').style.display = 'block';
                 return;
             }
 
@@ -453,8 +512,14 @@ game_code = """
             totalShots++;
             updateUI();
 
-            recoilZ = 0.18;
-            recoilRotX = 0.16;
+            // 총기별 반동 제어
+            if (selectedWeapon === 'kar98k') {
+                recoilZ = 0.32;
+                recoilRotX = 0.28;
+            } else {
+                recoilZ = 0.18;
+                recoilRotX = 0.16;
+            }
 
             muzzleFlashMesh.material.opacity = 1.0;
             setTimeout(() => {
@@ -469,24 +534,25 @@ game_code = """
             for (let i = 0; i < intersects.length; i++) {
                 let hitParent = intersects[i].object.parent;
                 if (targets.includes(hitParent)) {
+                    // 맞춘 과녁 제거 후 위치가 다른 새 과녁 재배치
                     scene.remove(hitParent);
                     targets = targets.filter(t => t !== hitParent);
                     
-                    score += 100;
+                    score += (selectedWeapon === 'kar98k') ? 150 : 100;
                     hits++;
                     updateUI();
-                    createTarget();
+                    createTarget(); // 순간이동 효과 (새 위치에 재생성)
                     break;
                 }
             }
 
             if (ammo === 0) {
-                document.getElementById('reloadMsg').style.display = 'inline';
+                document.getElementById('reloadMsg').style.display = 'block';
             }
         }
 
         function reload() {
-            if (isReloading || ammo === MAX_AMMO || !isGameStarted) return;
+            if (isReloading || ammo === maxAmmo || !isGameStarted) return;
             isReloading = true;
             document.getElementById('reloadMsg').innerText = "재장전 중...";
 
@@ -497,8 +563,7 @@ game_code = """
                 if (progress <= 0.3) {
                     const p = progress / 0.3;
                     magazineMesh.position.y = -0.35 * p;
-                    magazineMesh.position.z = 0.05 * p;
-                    akGroup.rotation.z = 0.2 * p;
+                    weaponGroup.rotation.z = 0.2 * p;
                 } else if (progress > 0.3 && progress <= 0.75) {
                     const p = (progress - 0.3) / 0.45;
                     magazineMesh.position.y = -0.35 - Math.sin(p * Math.PI) * 0.08;
@@ -506,16 +571,15 @@ game_code = """
                 } else if (progress > 0.75 && progress <= 1.0) {
                     const p = (progress - 0.75) / 0.25;
                     magazineMesh.position.y = -0.35 * (1 - p);
-                    magazineMesh.position.z = 0.05 * (1 - p);
                     magazineMesh.rotation.x = 0;
-                    akGroup.rotation.z = 0.2 * (1 - p);
+                    weaponGroup.rotation.z = 0.2 * (1 - p);
                 } else {
                     clearInterval(reloadInterval);
                     magazineMesh.position.set(0, 0, 0);
                     magazineMesh.rotation.set(0, 0, 0);
-                    akGroup.rotation.z = 0;
+                    weaponGroup.rotation.z = 0;
                     
-                    ammo = MAX_AMMO;
+                    ammo = maxAmmo;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
                     document.getElementById('reloadMsg').innerText = "[R] 키를 눌러 재장전!";
@@ -527,6 +591,7 @@ game_code = """
         function updateUI() {
             document.getElementById('score').innerText = score;
             document.getElementById('ammo').innerText = ammo;
+            document.getElementById('maxAmmo').innerText = maxAmmo;
             const acc = totalShots > 0 ? ((hits / totalShots) * 100).toFixed(1) : 100;
             document.getElementById('accuracy').innerText = acc;
         }
@@ -554,8 +619,8 @@ game_code = """
                 camera.rotation.y += (-mouse.x * 0.45 - camera.rotation.y) * 0.1;
                 camera.rotation.x += (mouse.y * 0.28 - camera.rotation.x) * 0.1;
 
-                akGroup.position.x = 0.24 + mouse.x * 0.04;
-                akGroup.position.y = -0.24 + mouse.y * 0.04;
+                weaponGroup.position.x = 0.24 + mouse.x * 0.04;
+                weaponGroup.position.y = -0.24 + mouse.y * 0.04;
 
                 if (recoilZ > 0) {
                     recoilZ -= 0.02;
@@ -566,18 +631,10 @@ game_code = """
                     if (recoilRotX < 0) recoilRotX = 0;
                 }
 
-                akGroup.position.z = -0.55 + recoilZ;
-                akGroup.rotation.x = recoilRotX;
+                weaponGroup.position.z = -0.55 + recoilZ;
+                weaponGroup.rotation.x = recoilRotX;
 
-                targets.forEach(t => {
-                    t.position.x += t.userData.dx;
-                    t.position.y += t.userData.dy;
-
-                    t.rotation.z += 0.02;
-
-                    if (Math.abs(t.position.x) > 7.5) t.userData.dx *= -1;
-                    if (t.position.y < 0.8 || t.position.y > 4.2) t.userData.dy *= -1;
-                });
+                // 과녁의 자동 이동 루프 제거됨 (고정 상태 유지)
             }
 
             if (renderer && scene && camera) {
