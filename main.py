@@ -14,7 +14,7 @@ game_code = """
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #0b0e14;
+            background-color: #1a1d24;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
@@ -56,7 +56,7 @@ game_code = """
             font-size: 28px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 10px rgba(212,163,89,0.5);
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
             pointer-events: none;
         }
         #crosshair {
@@ -86,11 +86,11 @@ game_code = """
             top: 60px;
             width: 100%;
             text-align: center;
-            color: #ffcc00;
+            color: #ff3344;
             font-size: 24px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 8px rgba(255,204,0,0.8);
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
             pointer-events: none;
         }
         #flashOverlay {
@@ -105,7 +105,8 @@ game_code = """
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 14, 20, 0.95);
+            background: rgba(26, 29, 36, 0.92);
+            backdrop-filter: blur(5px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -119,9 +120,9 @@ game_code = """
             gap: 15px;
         }
         .diff-btn {
-            background: #1f232d;
+            background: #2b2f3a;
             color: #ece8e1;
-            border: 2px solid #363c4a;
+            border: 2px solid #454c5e;
             padding: 10px 24px;
             font-size: 16px;
             font-weight: bold;
@@ -167,7 +168,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 5px; font-size: 36px;">REAL AK-47 AIMLAB</h1>
-        <p style="color: #8b929a; margin-bottom: 10px;">AK-47 소총으로 고속 이동 표적지를 정밀 타격하세요.</p>
+        <p style="color: #a0a7b5; margin-bottom: 10px;">AK-47 소총으로 고속 이동 표적지를 정밀 타격하세요.</p>
         
         <div class="diff-container">
             <button class="diff-btn" onclick="selectDiff('easy', this)">EASY</button>
@@ -190,7 +191,6 @@ game_code = """
         let flashInterval = null;
 
         let currentDiff = 'normal';
-        // Normal 모드 속도 살짝 다운 (기존 0.085 -> 0.065)
         let targetSpeed = 0.065;
         let targetRadius = 0.48;
 
@@ -229,25 +229,56 @@ game_code = """
 
             if (!scene) {
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x0a0c10);
-                scene.fog = new THREE.FogExp2(0x0a0c10, 0.015);
+                // 1. 회색 톤 배경 및 은은한 안개 설정
+                scene.background = new THREE.Color(0x282c35);
+                scene.fog = new THREE.FogExp2(0x282c35, 0.012);
 
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
                 camera.position.set(0, 1.6, 0);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, 500);
+                renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                // 2. 조명 세팅 (총기가 입체적으로 돋보이게 리얼하게 배치)
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
                 scene.add(ambientLight);
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-                dirLight.position.set(5, 12, 7);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                dirLight.position.set(6, 15, 8);
                 scene.add(dirLight);
 
-                const gridHelper = new THREE.GridHelper(60, 30, 0x555555, 0x1f232d);
-                gridHelper.position.y = 0;
+                const backLight = new THREE.DirectionalLight(0xd4a359, 0.5);
+                backLight.position.set(-5, 5, -10);
+                scene.add(backLight);
+
+                // 3. 입체적인 회색 룸 공간 생성 (바닥 + 격자 + 벽)
+                // 바닥
+                const floorGeo = new THREE.PlaneGeometry(60, 60);
+                const floorMat = new THREE.MeshStandardMaterial({ color: 0x323742, roughness: 0.8 });
+                const floor = new THREE.Mesh(floorGeo, floorMat);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = 0;
+                scene.add(floor);
+
+                // 바닥 세련된 Grid
+                const gridHelper = new THREE.GridHelper(60, 30, 0xd4a359, 0x4a5160);
+                gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
+
+                // 배경 입체 벽
+                const wallGeo = new THREE.PlaneGeometry(60, 30);
+                const wallMat = new THREE.MeshStandardMaterial({ color: 0x21252d, roughness: 0.6 });
+                const backWall = new THREE.Mesh(wallGeo, wallMat);
+                backWall.position.set(0, 15, -25);
+                scene.add(backWall);
+
+                // 벽면 패널 그리드 구조물 (입체감 증대)
+                const wallGrid = new THREE.GridHelper(60, 20, 0x5a6375, 0x3a404d);
+                wallGrid.rotation.x = Math.PI / 2;
+                wallGrid.position.set(0, 15, -24.9);
+                scene.add(wallGrid);
 
                 createAK47();
 
@@ -290,10 +321,10 @@ game_code = """
         function createAK47() {
             akGroup = new THREE.Group();
 
-            const steelMat = new THREE.MeshStandardMaterial({ color: 0x2b2e33, roughness: 0.35, metalness: 0.85 });
-            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.4, metalness: 0.9 });
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2c16, roughness: 0.6, metalness: 0.1 });
-            const magMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.4, metalness: 0.8 });
+            const steelMat = new THREE.MeshStandardMaterial({ color: 0x3d414a, roughness: 0.3, metalness: 0.85 });
+            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x25282e, roughness: 0.35, metalness: 0.9 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x7a3a1d, roughness: 0.5, metalness: 0.1 });
+            const magMat = new THREE.MeshStandardMaterial({ color: 0x2e323b, roughness: 0.35, metalness: 0.8 });
 
             const bodyGeo = new THREE.BoxGeometry(0.065, 0.085, 0.42);
             const mainBody = new THREE.Mesh(bodyGeo, steelMat);
@@ -388,7 +419,7 @@ game_code = """
             
             const discGeo = new THREE.CylinderGeometry(targetRadius, targetRadius, 0.06, 32);
             const discMat = [
-                new THREE.MeshStandardMaterial({ color: 0x333333 }),
+                new THREE.MeshStandardMaterial({ color: 0x222222 }),
                 new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3 }),
                 new THREE.MeshStandardMaterial({ color: 0x111111 })
             ];
@@ -454,7 +485,6 @@ game_code = """
             }
         }
 
-        // 탄창 공중 360도 회전(Flip) 재장전 모션
         function reload() {
             if (isReloading || ammo === MAX_AMMO || !isGameStarted) return;
             isReloading = true;
@@ -462,28 +492,24 @@ game_code = """
 
             let progress = 0;
             const reloadInterval = setInterval(() => {
-                progress += 0.025; // 애니메이션 진행도
+                progress += 0.025;
 
                 if (progress <= 0.3) {
-                    // 1단계: 탄창 탈착 및 아래로 떨구기
                     const p = progress / 0.3;
                     magazineMesh.position.y = -0.35 * p;
                     magazineMesh.position.z = 0.05 * p;
-                    akGroup.rotation.z = 0.2 * p; // 총을 약간 기움
+                    akGroup.rotation.z = 0.2 * p;
                 } else if (progress > 0.3 && progress <= 0.75) {
-                    // 2단계: 공중에서 탄창 360도 돌리기 (360 Flip)
                     const p = (progress - 0.3) / 0.45;
                     magazineMesh.position.y = -0.35 - Math.sin(p * Math.PI) * 0.08;
-                    magazineMesh.rotation.x = -p * Math.PI * 2; // X축 360도 회전
+                    magazineMesh.rotation.x = -p * Math.PI * 2;
                 } else if (progress > 0.75 && progress <= 1.0) {
-                    // 3단계: 새 탄창 빠르게 장착
                     const p = (progress - 0.75) / 0.25;
                     magazineMesh.position.y = -0.35 * (1 - p);
                     magazineMesh.position.z = 0.05 * (1 - p);
                     magazineMesh.rotation.x = 0;
                     akGroup.rotation.z = 0.2 * (1 - p);
                 } else {
-                    // 완료
                     clearInterval(reloadInterval);
                     magazineMesh.position.set(0, 0, 0);
                     magazineMesh.rotation.set(0, 0, 0);
