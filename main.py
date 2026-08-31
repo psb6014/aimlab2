@@ -28,6 +28,25 @@ game_code = """
             z-index: 10;
             text-shadow: 0 0 5px rgba(0,0,0,0.8);
             pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .main-menu-btn {
+            pointer-events: auto;
+            background: #2b2e33;
+            color: #d4a359;
+            border: 1px solid #d4a359;
+            padding: 5px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .main-menu-btn:hover {
+            background: #d4a359;
+            color: #000;
         }
         #ammo-panel {
             position: absolute;
@@ -136,7 +155,8 @@ game_code = """
 </head>
 <body>
     <div id="ui-panel">
-        점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%
+        <button class="main-menu-btn" onclick="goToMainMenu()">🏠 메인으로</button>
+        <div>점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
     </div>
     <div id="ammo-panel">
         AMMO: <span id="ammo">30</span> / 30 <span id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;"><br>[R] 키를 눌러 재장전!</span>
@@ -167,6 +187,7 @@ game_code = """
         let ammo = MAX_AMMO;
         let isReloading = false;
         let isGameStarted = false;
+        let flashInterval = null;
 
         let currentDiff = 'normal';
         let targetSpeed = 0.085;
@@ -196,85 +217,101 @@ game_code = """
 
         function initGame() {
             document.getElementById('startOverlay').style.display = 'none';
-            isGameStarted = true;
+            
+            // 데이터 초기화
+            score = 0;
+            totalShots = 0;
+            hits = 0;
+            ammo = MAX_AMMO;
+            isReloading = false;
+            updateUI();
+            document.getElementById('reloadMsg').style.display = 'none';
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0c10);
-            scene.fog = new THREE.FogExp2(0x0a0c10, 0.015);
+            if (!scene) {
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x0a0c10);
+                scene.fog = new THREE.FogExp2(0x0a0c10, 0.015);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
-            camera.position.set(0, 1.6, 0);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
+                camera.position.set(0, 1.6, 0);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, 500);
-            document.body.appendChild(renderer.domElement);
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, 500);
+                document.body.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            dirLight.position.set(5, 12, 7);
-            scene.add(dirLight);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                scene.add(ambientLight);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                dirLight.position.set(5, 12, 7);
+                scene.add(dirLight);
 
-            const gridHelper = new THREE.GridHelper(60, 30, 0x555555, 0x1f232d);
-            gridHelper.position.y = 0;
-            scene.add(gridHelper);
+                const gridHelper = new THREE.GridHelper(60, 30, 0x555555, 0x1f232d);
+                gridHelper.position.y = 0;
+                scene.add(gridHelper);
 
-            // AK-47 생성
-            createAK47();
+                createAK47();
 
+                window.addEventListener('mousemove', (e) => {
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                });
+
+                window.addEventListener('mousedown', (e) => {
+                    if (e.button === 0 && isGameStarted) shoot();
+                });
+
+                window.addEventListener('keydown', (e) => {
+                    if ((e.key === 'r' || e.key === 'R') && isGameStarted) reload();
+                });
+
+                animate();
+            }
+
+            // 기존 타겟 제거 후 새로 생성
+            targets.forEach(t => scene.remove(t));
+            targets = [];
             for (let i = 0; i < 5; i++) {
                 createTarget();
             }
 
-            window.addEventListener('mousemove', (e) => {
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-            });
+            if (flashInterval) clearInterval(flashInterval);
+            flashInterval = setInterval(triggerFlash, 10000);
 
-            window.addEventListener('mousedown', (e) => {
-                if (e.button === 0 && isGameStarted) shoot();
-            });
-
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'r' || e.key === 'R') reload();
-            });
-
-            setInterval(triggerFlash, 10000);
-
-            animate();
+            isGameStarted = true;
         }
 
-        // 디테일한 AK-47 3D 모델링
+        function goToMainMenu() {
+            isGameStarted = false;
+            if (flashInterval) clearInterval(flashInterval);
+            document.getElementById('warningText').innerText = "";
+            document.getElementById('startOverlay').style.display = 'flex';
+        }
+
         function createAK47() {
             akGroup = new THREE.Group();
 
-            // 재질 세팅 (클래식 다크 메탈 & 짙은 우드)
             const steelMat = new THREE.MeshStandardMaterial({ color: 0x2b2e33, roughness: 0.35, metalness: 0.85 });
             const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.4, metalness: 0.9 });
             const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2c16, roughness: 0.6, metalness: 0.1 });
             const magMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.4, metalness: 0.8 });
 
-            // 1. 총몸 (Receiver / Upper Receiver)
             const bodyGeo = new THREE.BoxGeometry(0.065, 0.085, 0.42);
             const mainBody = new THREE.Mesh(bodyGeo, steelMat);
             akGroup.add(mainBody);
 
-            // 2. 우드 목재 개머리판 (Wood Stock)
             const stockGeo = new THREE.BoxGeometry(0.05, 0.11, 0.36);
             const stock = new THREE.Mesh(stockGeo, woodMat);
             stock.position.set(0, -0.03, 0.38);
             stock.rotation.x = -0.15;
             akGroup.add(stock);
 
-            // 3. 우드 권총 손잡이 (Wood Pistol Grip)
             const gripGeo = new THREE.BoxGeometry(0.045, 0.14, 0.06);
             const grip = new THREE.Mesh(gripGeo, woodMat);
             grip.position.set(0, -0.11, 0.1);
             grip.rotation.x = 0.35;
             akGroup.add(grip);
 
-            // 4. 우드 핸드가드 (Wood Handguard - 2단 분할)
             const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.065, 0.28), woodMat);
             lowerHandguard.position.set(0, -0.01, -0.34);
             akGroup.add(lowerHandguard);
@@ -284,7 +321,6 @@ game_code = """
             upperHandguard.position.set(0, 0.032, -0.33);
             akGroup.add(upperHandguard);
 
-            // 5. 총열 및 가스 튜브 (Barrel & Gas Tube)
             const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), darkSteelMat);
             barrel.rotation.x = Math.PI / 2;
             barrel.position.set(0, 0.01, -0.58);
@@ -294,7 +330,6 @@ game_code = """
             gasBlock.position.set(0, 0.03, -0.65);
             akGroup.add(gasBlock);
 
-            // 6. 조준기 및 지향 사격 가누대 (Front & Rear Sights)
             const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.065, 0.03), darkSteelMat);
             frontSight.position.set(0, 0.06, -0.88);
             akGroup.add(frontSight);
@@ -303,10 +338,7 @@ game_code = """
             rearSight.position.set(0, 0.06, -0.18);
             akGroup.add(rearSight);
 
-            // 7. AK-47 특유의 바나나 커브 탄창 (Curved Magazine)
             magazineMesh = new THREE.Group();
-            
-            // 곡선 형태의 탄창 분할 조합
             const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), magMat);
             magTop.position.set(0, -0.12, -0.02);
             magTop.rotation.x = -0.28;
@@ -319,7 +351,6 @@ game_code = """
             magazineMesh.add(magBottom);
             akGroup.add(magazineMesh);
 
-            // 8. 총구 화염 (Muzzle Flash)
             const flashGeo = new THREE.OctahedronGeometry(0.11, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
@@ -331,7 +362,6 @@ game_code = """
             scene.add(camera);
         }
 
-        // 레드&화이트 동심원 표적지
         function createTarget() {
             const targetGroup = new THREE.Group();
 
@@ -382,7 +412,7 @@ game_code = """
         }
 
         function shoot() {
-            if (isReloading) return;
+            if (isReloading || !isGameStarted) return;
 
             if (ammo <= 0) {
                 document.getElementById('reloadMsg').style.display = 'inline';
@@ -426,7 +456,7 @@ game_code = """
         }
 
         function reload() {
-            if (isReloading || ammo === MAX_AMMO) return;
+            if (isReloading || ammo === MAX_AMMO || !isGameStarted) return;
             isReloading = true;
             document.getElementById('reloadMsg').innerText = "재장전 중...";
 
@@ -468,7 +498,7 @@ game_code = """
 
             setTimeout(() => {
                 document.getElementById('warningText').innerText = "";
-                if (Math.hypot(mouse.x, mouse.y) < 0.65) {
+                if (Math.hypot(mouse.x, mouse.y) < 0.65 && isGameStarted) {
                     const flashOverlay = document.getElementById('flashOverlay');
                     flashOverlay.style.opacity = '1';
                     setTimeout(() => {
@@ -511,7 +541,9 @@ game_code = """
                 });
             }
 
-            renderer.render(scene, camera);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
     </script>
 </body>
