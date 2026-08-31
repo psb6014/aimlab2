@@ -190,7 +190,8 @@ game_code = """
         let flashInterval = null;
 
         let currentDiff = 'normal';
-        let targetSpeed = 0.085;
+        // Normal 모드 속도 살짝 다운 (기존 0.085 -> 0.065)
+        let targetSpeed = 0.065;
         let targetRadius = 0.48;
 
         let mouse = new THREE.Vector2();
@@ -204,13 +205,13 @@ game_code = """
             btn.classList.add('selected');
 
             if (diff === 'easy') {
-                targetSpeed = 0.045;
+                targetSpeed = 0.04;
                 targetRadius = 0.6;
             } else if (diff === 'normal') {
-                targetSpeed = 0.085;
+                targetSpeed = 0.065;
                 targetRadius = 0.48;
             } else if (diff === 'hard') {
-                targetSpeed = 0.14;
+                targetSpeed = 0.13;
                 targetRadius = 0.35;
             }
         }
@@ -218,7 +219,6 @@ game_code = """
         function initGame() {
             document.getElementById('startOverlay').style.display = 'none';
             
-            // 데이터 초기화
             score = 0;
             totalShots = 0;
             hits = 0;
@@ -268,7 +268,6 @@ game_code = """
                 animate();
             }
 
-            // 기존 타겟 제거 후 새로 생성
             targets.forEach(t => scene.remove(t));
             targets = [];
             for (let i = 0; i < 5; i++) {
@@ -455,34 +454,48 @@ game_code = """
             }
         }
 
+        // 탄창 공중 360도 회전(Flip) 재장전 모션
         function reload() {
             if (isReloading || ammo === MAX_AMMO || !isGameStarted) return;
             isReloading = true;
             document.getElementById('reloadMsg').innerText = "재장전 중...";
 
-            let step = 0;
+            let progress = 0;
             const reloadInterval = setInterval(() => {
-                step += 0.04;
+                progress += 0.025; // 애니메이션 진행도
 
-                if (step < 0.4) {
-                    magazineMesh.position.y -= 0.035;
-                    magazineMesh.position.z += 0.01;
-                    akGroup.rotation.z = 0.25;
-                } else if (step >= 0.4 && step < 0.5) {
-                    magazineMesh.position.set(0, -0.5, -0.05);
-                } else if (step >= 0.5 && step < 0.9) {
-                    magazineMesh.position.y += 0.035;
+                if (progress <= 0.3) {
+                    // 1단계: 탄창 탈착 및 아래로 떨구기
+                    const p = progress / 0.3;
+                    magazineMesh.position.y = -0.35 * p;
+                    magazineMesh.position.z = 0.05 * p;
+                    akGroup.rotation.z = 0.2 * p; // 총을 약간 기움
+                } else if (progress > 0.3 && progress <= 0.75) {
+                    // 2단계: 공중에서 탄창 360도 돌리기 (360 Flip)
+                    const p = (progress - 0.3) / 0.45;
+                    magazineMesh.position.y = -0.35 - Math.sin(p * Math.PI) * 0.08;
+                    magazineMesh.rotation.x = -p * Math.PI * 2; // X축 360도 회전
+                } else if (progress > 0.75 && progress <= 1.0) {
+                    // 3단계: 새 탄창 빠르게 장착
+                    const p = (progress - 0.75) / 0.25;
+                    magazineMesh.position.y = -0.35 * (1 - p);
+                    magazineMesh.position.z = 0.05 * (1 - p);
+                    magazineMesh.rotation.x = 0;
+                    akGroup.rotation.z = 0.2 * (1 - p);
                 } else {
+                    // 완료
                     clearInterval(reloadInterval);
                     magazineMesh.position.set(0, 0, 0);
+                    magazineMesh.rotation.set(0, 0, 0);
                     akGroup.rotation.z = 0;
+                    
                     ammo = MAX_AMMO;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
                     document.getElementById('reloadMsg').innerText = "[R] 키를 눌러 재장전!";
                     updateUI();
                 }
-            }, 25);
+            }, 20);
         }
 
         function updateUI() {
