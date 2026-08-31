@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Multi-Weapon Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Realistic Gun Sounds Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (Multi-Weapon Edition)")
-st.caption("고정 표적 정밀 타격 연습! 원하는 총기를 선택해 에임을 연마하세요.")
+st.title("🎯 3D Web AimLab (Gun Sounds Edition)")
+st.caption("각 총기별 독자적인 사운드가 적용되었습니다. 총기를 선택하고 사격해 보세요!")
 
 game_code = """
 <!DOCTYPE html>
@@ -177,7 +177,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 2px; font-size: 32px;">3D AIMLAB STUDIO</h1>
-        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">표적을 조준하여 타격하세요. (맞출 때마다 과녁 위치가 이동합니다)</p>
+        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">표적을 조준하여 타격하세요. (총기별 고유 격발음 적용)</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -197,6 +197,129 @@ game_code = """
     </div>
 
     <script>
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Web Audio API 기반 총소리 합성 엔진
+        function playGunSound(type) {
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const bufferSize = audioCtx.sampleRate * 0.5;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = audioCtx.createBiquadFilter();
+            const gain = audioCtx.createGain();
+
+            if (type === 'ak47') {
+                // AK-47: 묵직하고 거친 중저음 타격음
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(100, now + 0.35);
+
+                gain.gain.setValueAtTime(1.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+            } else if (type === 'kar98k') {
+                // Kar98k: 강력한 대구경 폭발음과 잔향
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(3000, now);
+                filter.frequency.exponentialRampToValueAtTime(80, now + 0.5);
+
+                gain.gain.setValueAtTime(1.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            } else if (type === 'famas') {
+                // FAMAS: 날카롭고 빠른 고주파 파열음
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(1200, now);
+                filter.frequency.exponentialRampToValueAtTime(200, now + 0.22);
+
+                gain.gain.setValueAtTime(1.0, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+            }
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            noise.start(now);
+
+            // 총기 저음 울림(Kick) 합성
+            const osc = audioCtx.createOscillator();
+            const oscGain = audioCtx.createGain();
+            osc.type = 'triangle';
+            
+            if (type === 'kar98k') {
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+                oscGain.gain.setValueAtTime(0.8, now);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            } else {
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+                oscGain.gain.setValueAtTime(0.5, now);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            }
+
+            osc.connect(oscGain);
+            oscGain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        }
+
+        function playEmptyClick() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+
+        function playReloadSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            // 찰칵 기계음
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
         let scene, camera, renderer;
         let targets = [];
         let score = 0, totalShots = 0, hits = 0;
@@ -238,6 +361,7 @@ game_code = """
         }
 
         function initGame() {
+            initAudio();
             document.getElementById('startOverlay').style.display = 'none';
             
             score = 0;
@@ -272,7 +396,7 @@ game_code = """
                 backLight.position.set(-5, 5, -10);
                 scene.add(backLight);
 
-                // 3D 공간 배치
+                // 3D 공간
                 const floorGeo = new THREE.PlaneGeometry(60, 60);
                 const floorMat = new THREE.MeshStandardMaterial({ color: 0x323742, roughness: 0.8 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -311,11 +435,9 @@ game_code = """
                 animate();
             }
 
-            // 선택된 총기 재생성
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
 
-            // 초기 타겟 생성
             targets.forEach(t => scene.remove(t));
             targets = [];
             for (let i = 0; i < 5; i++) {
@@ -335,7 +457,6 @@ game_code = """
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        // 총기 3D 모델링 생성자 (AK-47, Kar98k, FAMAS)
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
@@ -375,7 +496,6 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                // Kar98k 일체형 우드 스톡
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.085, 0.95), woodMat);
                 stock.position.set(0, -0.03, -0.1);
                 weaponGroup.add(stock);
@@ -385,7 +505,6 @@ game_code = """
                 barrel.position.set(0, 0.02, -0.45);
                 weaponGroup.add(barrel);
 
-                // 스코프 (Scope)
                 const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.32, 16), darkSteelMat);
                 scopeBody.rotation.x = Math.PI / 2;
                 scopeBody.position.set(0, 0.08, -0.1);
@@ -395,20 +514,17 @@ game_code = """
                 scopeMount.position.set(0, 0.05, -0.1);
                 weaponGroup.add(scopeMount);
 
-                // 볼트 손잡이
                 const boltHandle = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), darkSteelMat);
                 boltHandle.position.set(0.05, 0.03, 0.1);
                 weaponGroup.add(boltHandle);
 
-                magazineMesh = new THREE.Group(); // 약실 패널
+                magazineMesh = new THREE.Group();
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                // FAMAS 메인 메탈 바디
                 const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.62), darkSteelMat);
                 weaponGroup.add(body);
 
-                // 상부 대형 캐링 핸들 (운반 손잡이)
                 const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.5), darkSteelMat);
                 handleTop.position.set(0, 0.12, -0.05);
                 weaponGroup.add(handleTop);
@@ -431,7 +547,6 @@ game_code = """
                 barrel.position.set(0, 0.01, -0.48);
                 weaponGroup.add(barrel);
 
-                // 불펍 탄창 (후방 배치)
                 magazineMesh = new THREE.Group();
                 const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.18, 0.075), magMat);
                 mag.position.set(0, -0.12, 0.2);
@@ -454,7 +569,6 @@ game_code = """
             scene.add(camera);
         }
 
-        // 고정 과녁 생성 (움직이지 않음)
         function createTarget() {
             const targetGroup = new THREE.Group();
 
@@ -491,7 +605,6 @@ game_code = """
             disc.rotation.x = Math.PI / 2;
             targetGroup.add(disc);
 
-            // 고정 무작위 위치 설정
             targetGroup.position.x = (Math.random() - 0.5) * 11;
             targetGroup.position.y = Math.random() * 2.8 + 0.9;
             targetGroup.position.z = -Math.random() * 8 - 4;
@@ -504,15 +617,18 @@ game_code = """
             if (isReloading || !isGameStarted) return;
 
             if (ammo <= 0) {
+                playEmptyClick();
                 document.getElementById('reloadMsg').style.display = 'block';
                 return;
             }
+
+            // 총소리 발사
+            playGunSound(selectedWeapon);
 
             ammo--;
             totalShots++;
             updateUI();
 
-            // 총기별 반동 제어
             if (selectedWeapon === 'kar98k') {
                 recoilZ = 0.32;
                 recoilRotX = 0.28;
@@ -534,14 +650,13 @@ game_code = """
             for (let i = 0; i < intersects.length; i++) {
                 let hitParent = intersects[i].object.parent;
                 if (targets.includes(hitParent)) {
-                    // 맞춘 과녁 제거 후 위치가 다른 새 과녁 재배치
                     scene.remove(hitParent);
                     targets = targets.filter(t => t !== hitParent);
                     
                     score += (selectedWeapon === 'kar98k') ? 150 : 100;
                     hits++;
                     updateUI();
-                    createTarget(); // 순간이동 효과 (새 위치에 재생성)
+                    createTarget();
                     break;
                 }
             }
@@ -554,6 +669,7 @@ game_code = """
         function reload() {
             if (isReloading || ammo === maxAmmo || !isGameStarted) return;
             isReloading = true;
+            playReloadSound();
             document.getElementById('reloadMsg').innerText = "재장전 중...";
 
             let progress = 0;
@@ -633,8 +749,6 @@ game_code = """
 
                 weaponGroup.position.z = -0.55 + recoilZ;
                 weaponGroup.rotation.x = recoilRotX;
-
-                // 과녁의 자동 이동 루프 제거됨 (고정 상태 유지)
             }
 
             if (renderer && scene && camera) {
