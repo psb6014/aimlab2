@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Kuronami Vandal", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - AK-47 Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (Kuronami Vandal Edition)")
-st.caption("발로란트 '쿠로나미 밴달'스킨과 함께하는 최고속 에임 연습! (25발 / R키: 재장전)")
+st.title("🎯 3D Web AimLab (Real AK-47 Edition)")
+st.caption("클래식 AK-47과 함께하는 고속 에임 연습! (30발 탄창 / R키: 재장전)")
 
 game_code = """
 <!DOCTYPE html>
@@ -14,7 +14,7 @@ game_code = """
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #080a0f;
+            background-color: #0b0e14;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
@@ -33,11 +33,11 @@ game_code = """
             position: absolute;
             bottom: 20px;
             right: 20px;
-            color: #ffaa00;
+            color: #d4a359;
             font-size: 28px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 12px rgba(255,170,0,0.6);
+            text-shadow: 0 0 10px rgba(212,163,89,0.5);
             pointer-events: none;
         }
         #crosshair {
@@ -53,8 +53,8 @@ game_code = """
         #crosshair::before, #crosshair::after {
             content: '';
             position: absolute;
-            background: #00ffcc;
-            box-shadow: 0 0 4px #00ffcc;
+            background: #00ff88;
+            box-shadow: 0 0 4px #00ff88;
         }
         #crosshair::before {
             top: 4px; left: -6px; width: 22px; height: 2px;
@@ -86,7 +86,7 @@ game_code = """
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(8, 10, 15, 0.95);
+            background: rgba(11, 14, 20, 0.95);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -100,9 +100,9 @@ game_code = """
             gap: 15px;
         }
         .diff-btn {
-            background: #121620;
+            background: #1f232d;
             color: #ece8e1;
-            border: 2px solid #2a3245;
+            border: 2px solid #363c4a;
             padding: 10px 24px;
             font-size: 16px;
             font-weight: bold;
@@ -111,13 +111,13 @@ game_code = """
             transition: 0.2s;
         }
         .diff-btn.selected {
-            background: #ffaa00;
-            color: #000;
-            border-color: #ffaa00;
-            box-shadow: 0 0 15px rgba(255,170,0,0.6);
+            background: #b87333;
+            color: #fff;
+            border-color: #d4a359;
+            box-shadow: 0 0 15px rgba(212,163,89,0.5);
         }
         .start-btn {
-            background: linear-gradient(135deg, #ffaa00, #ff5500);
+            background: linear-gradient(135deg, #b87333, #8b4513);
             color: white;
             border: none;
             padding: 14px 45px;
@@ -125,7 +125,7 @@ game_code = """
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 170, 0, 0.4);
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.5);
             margin-top: 10px;
         }
         .start-btn:hover {
@@ -136,18 +136,18 @@ game_code = """
 </head>
 <body>
     <div id="ui-panel">
-        점수: <span id="score" style="color:#ffaa00">0</span> | 명중률: <span id="accuracy" style="color:#00ffcc">100</span>%
+        점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%
     </div>
     <div id="ammo-panel">
-        AMMO: <span id="ammo">25</span> / 25 <span id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;"><br>[R] 키를 눌러 재장전!</span>
+        AMMO: <span id="ammo">30</span> / 30 <span id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;"><br>[R] 키를 눌러 재장전!</span>
     </div>
     <div id="crosshair"></div>
     <div id="warningText"></div>
     <div id="flashOverlay"></div>
 
     <div id="startOverlay">
-        <h1 style="color: #ffaa00; text-shadow: 0 0 12px rgba(255,170,0,0.6); margin-bottom: 5px; font-size: 36px;">KURONAMI VANDAL AIMLAB</h1>
-        <p style="color: #8b929a; margin-bottom: 10px;">쿠로나미 밴달 스킨과 함께 조준 연습을 시작하세요.</p>
+        <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 5px; font-size: 36px;">REAL AK-47 AIMLAB</h1>
+        <p style="color: #8b929a; margin-bottom: 10px;">AK-47 소총으로 고속 이동 표적지를 정밀 타격하세요.</p>
         
         <div class="diff-container">
             <button class="diff-btn" onclick="selectDiff('easy', this)">EASY</button>
@@ -163,7 +163,7 @@ game_code = """
         let targets = [];
         let score = 0, totalShots = 0, hits = 0;
         
-        const MAX_AMMO = 25;
+        const MAX_AMMO = 30;
         let ammo = MAX_AMMO;
         let isReloading = false;
         let isGameStarted = false;
@@ -174,8 +174,7 @@ game_code = """
 
         let mouse = new THREE.Vector2();
 
-        // 쿠로나미 밴달 모델 파츠
-        let kuronamiGroup, magazineMesh, muzzleFlashMesh;
+        let akGroup, magazineMesh, muzzleFlashMesh;
         let recoilZ = 0, recoilRotX = 0;
 
         function selectDiff(diff, btn) {
@@ -200,8 +199,8 @@ game_code = """
             isGameStarted = true;
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0c12);
-            scene.fog = new THREE.FogExp2(0x0a0c12, 0.015);
+            scene.background = new THREE.Color(0x0a0c10);
+            scene.fog = new THREE.FogExp2(0x0a0c10, 0.015);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
             camera.position.set(0, 1.6, 0);
@@ -210,19 +209,18 @@ game_code = """
             renderer.setSize(window.innerWidth, 500);
             document.body.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
             dirLight.position.set(5, 12, 7);
             scene.add(dirLight);
 
-            // 사이버펑크 네온 하단 그리드
-            const gridHelper = new THREE.GridHelper(60, 30, 0x00ffcc, 0x1f2738);
+            const gridHelper = new THREE.GridHelper(60, 30, 0x555555, 0x1f232d);
             gridHelper.position.y = 0;
             scene.add(gridHelper);
 
-            // 쿠로나미 밴달 스킨 조립
-            createKuronamiVandal();
+            // AK-47 생성
+            createAK47();
 
             for (let i = 0; i < 5; i++) {
                 createTarget();
@@ -247,96 +245,93 @@ game_code = """
             animate();
         }
 
-        // 쿠로나미 밴달(Kuronami Vandal) 3D 조형
-        function createKuronamiVandal() {
-            kuronamiGroup = new THREE.Group();
+        // 디테일한 AK-47 3D 모델링
+        function createAK47() {
+            akGroup = new THREE.Group();
 
-            const darkMetal = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.25, metalness: 0.9 });
-            const goldAccent = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.3, metalness: 0.8 });
-            const neonCyan = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-            const neonAmber = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+            // 재질 세팅 (클래식 다크 메탈 & 짙은 우드)
+            const steelMat = new THREE.MeshStandardMaterial({ color: 0x2b2e33, roughness: 0.35, metalness: 0.85 });
+            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.4, metalness: 0.9 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2c16, roughness: 0.6, metalness: 0.1 });
+            const magMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.4, metalness: 0.8 });
 
-            // 1. 메인 수신기 (Sharp Vandal Body)
-            const bodyGeo = new THREE.ConeGeometry(0.08, 0.65, 4);
-            const mainBody = new THREE.Mesh(bodyGeo, darkMetal);
-            mainBody.rotation.z = -Math.PI / 2;
-            kuronamiGroup.add(mainBody);
+            // 1. 총몸 (Receiver / Upper Receiver)
+            const bodyGeo = new THREE.BoxGeometry(0.065, 0.085, 0.42);
+            const mainBody = new THREE.Mesh(bodyGeo, steelMat);
+            akGroup.add(mainBody);
 
-            // 2. 날카로운 상부 레이저 가이드
-            const topSpineGeo = new THREE.BoxGeometry(0.03, 0.04, 0.5);
-            const topSpine = new THREE.Mesh(topSpineGeo, goldAccent);
-            topSpine.position.set(0, 0.06, -0.1);
-            kuronamiGroup.add(topSpine);
+            // 2. 우드 목재 개머리판 (Wood Stock)
+            const stockGeo = new THREE.BoxGeometry(0.05, 0.11, 0.36);
+            const stock = new THREE.Mesh(stockGeo, woodMat);
+            stock.position.set(0, -0.03, 0.38);
+            stock.rotation.x = -0.15;
+            akGroup.add(stock);
 
-            // 3. 쿠로나미 특유의 뾰족한 총열 (Spiked Barrel)
-            const barrelGeo = new THREE.CylinderGeometry(0.018, 0.025, 0.65, 6);
-            const barrel = new THREE.Mesh(barrelGeo, darkMetal);
+            // 3. 우드 권총 손잡이 (Wood Pistol Grip)
+            const gripGeo = new THREE.BoxGeometry(0.045, 0.14, 0.06);
+            const grip = new THREE.Mesh(gripGeo, woodMat);
+            grip.position.set(0, -0.11, 0.1);
+            grip.rotation.x = 0.35;
+            akGroup.add(grip);
+
+            // 4. 우드 핸드가드 (Wood Handguard - 2단 분할)
+            const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.065, 0.28), woodMat);
+            lowerHandguard.position.set(0, -0.01, -0.34);
+            akGroup.add(lowerHandguard);
+
+            const upperHandguard = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.26, 12), woodMat);
+            upperHandguard.rotation.x = Math.PI / 2;
+            upperHandguard.position.set(0, 0.032, -0.33);
+            akGroup.add(upperHandguard);
+
+            // 5. 총열 및 가스 튜브 (Barrel & Gas Tube)
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), darkSteelMat);
             barrel.rotation.x = Math.PI / 2;
-            barrel.position.set(0, 0.01, -0.6);
-            kuronamiGroup.add(barrel);
+            barrel.position.set(0, 0.01, -0.58);
+            akGroup.add(barrel);
 
-            // 총구 소멸기 팁 (Spiked Muzzle Tip)
-            const muzzleTipGeo = new THREE.ConeGeometry(0.03, 0.15, 6);
-            const muzzleTip = new THREE.Mesh(muzzleTipGeo, goldAccent);
-            muzzleTip.rotation.x = -Math.PI / 2;
-            muzzleTip.position.set(0, 0.01, -0.92);
-            kuronamiGroup.add(muzzleTip);
+            const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.06, 0.05), steelMat);
+            gasBlock.position.set(0, 0.03, -0.65);
+            akGroup.add(gasBlock);
 
-            // 4. 발광 라인 (Cyan Mana/Energy Line)
-            const lineGeo = new THREE.BoxGeometry(0.01, 0.015, 0.55);
-            const line = new THREE.Mesh(lineGeo, neonCyan);
-            line.position.set(0, 0.02, -0.3);
-            kuronamiGroup.add(line);
+            // 6. 조준기 및 지향 사격 가누대 (Front & Rear Sights)
+            const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.065, 0.03), darkSteelMat);
+            frontSight.position.set(0, 0.06, -0.88);
+            akGroup.add(frontSight);
 
-            // 5. 유선형 각진 개머리판 (Angular Stock)
-            const stockGeo = new THREE.BoxGeometry(0.04, 0.14, 0.38);
-            const stock = new THREE.Mesh(stockGeo, darkMetal);
-            stock.position.set(0, -0.03, 0.42);
-            stock.rotation.x = -0.2;
-            kuronamiGroup.add(stock);
+            const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.035, 0.08), darkSteelMat);
+            rearSight.position.set(0, 0.06, -0.18);
+            akGroup.add(rearSight);
 
-            // 개머리판 골드 프레임
-            const stockFrame = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.03, 0.35), goldAccent);
-            stockFrame.position.set(0, 0.02, 0.42);
-            stockFrame.rotation.x = -0.2;
-            kuronamiGroup.add(stockFrame);
-
-            // 6. 조준경 (Kuronami Holographic Scope)
-            const scopeGeo = new THREE.BoxGeometry(0.035, 0.06, 0.12);
-            const scope = new THREE.Mesh(scopeGeo, goldAccent);
-            scope.position.set(0, 0.09, -0.05);
-            kuronamiGroup.add(scope);
-
-            const scopeCore = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.08), neonCyan);
-            scopeCore.position.set(0, 0.095, -0.05);
-            kuronamiGroup.add(scopeCore);
-
-            // 7. 뾰족한 사선 엠버 탄창 (Curved Mag)
+            // 7. AK-47 특유의 바나나 커브 탄창 (Curved Magazine)
             magazineMesh = new THREE.Group();
-            const magBox = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.32, 0.09), darkMetal);
-            magBox.position.set(0, -0.18, -0.05);
-            magBox.rotation.x = -0.4;
+            
+            // 곡선 형태의 탄창 분할 조합
+            const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.16, 0.08), magMat);
+            magTop.position.set(0, -0.12, -0.02);
+            magTop.rotation.x = -0.28;
 
-            const magEdge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.02), goldAccent);
-            magEdge.position.set(0, -0.18, -0.01);
-            magEdge.rotation.x = -0.4;
+            const magBottom = new THREE.Mesh(new THREE.BoxGeometry(0.043, 0.18, 0.075), magMat);
+            magBottom.position.set(0, -0.25, -0.07);
+            magBottom.rotation.x = -0.55;
 
-            magazineMesh.add(magBox);
-            magazineMesh.add(magEdge);
-            kuronamiGroup.add(magazineMesh);
+            magazineMesh.add(magTop);
+            magazineMesh.add(magBottom);
+            akGroup.add(magazineMesh);
 
-            // 8. 총구 화염 (Amber Muzzle Flash)
-            const flashGeo = new THREE.OctahedronGeometry(0.1, 0);
+            // 8. 총구 화염 (Muzzle Flash)
+            const flashGeo = new THREE.OctahedronGeometry(0.11, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
-            muzzleFlashMesh.position.set(0, 0.01, -1.02);
-            kuronamiGroup.add(muzzleFlashMesh);
+            muzzleFlashMesh.position.set(0, 0.01, -0.98);
+            akGroup.add(muzzleFlashMesh);
 
-            kuronamiGroup.position.set(0.24, -0.24, -0.55);
-            camera.add(kuronamiGroup);
+            akGroup.position.set(0.24, -0.24, -0.55);
+            camera.add(akGroup);
             scene.add(camera);
         }
 
+        // 레드&화이트 동심원 표적지
         function createTarget() {
             const targetGroup = new THREE.Group();
 
@@ -364,7 +359,7 @@ game_code = """
             
             const discGeo = new THREE.CylinderGeometry(targetRadius, targetRadius, 0.06, 32);
             const discMat = [
-                new THREE.MeshStandardMaterial({ color: 0x222222 }),
+                new THREE.MeshStandardMaterial({ color: 0x333333 }),
                 new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3 }),
                 new THREE.MeshStandardMaterial({ color: 0x111111 })
             ];
@@ -398,8 +393,8 @@ game_code = """
             totalShots++;
             updateUI();
 
-            recoilZ = 0.17;
-            recoilRotX = 0.15;
+            recoilZ = 0.18;
+            recoilRotX = 0.16;
 
             muzzleFlashMesh.material.opacity = 1.0;
             setTimeout(() => {
@@ -442,7 +437,7 @@ game_code = """
                 if (step < 0.4) {
                     magazineMesh.position.y -= 0.035;
                     magazineMesh.position.z += 0.01;
-                    kuronamiGroup.rotation.z = 0.25;
+                    akGroup.rotation.z = 0.25;
                 } else if (step >= 0.4 && step < 0.5) {
                     magazineMesh.position.set(0, -0.5, -0.05);
                 } else if (step >= 0.5 && step < 0.9) {
@@ -450,7 +445,7 @@ game_code = """
                 } else {
                     clearInterval(reloadInterval);
                     magazineMesh.position.set(0, 0, 0);
-                    kuronamiGroup.rotation.z = 0;
+                    akGroup.rotation.z = 0;
                     ammo = MAX_AMMO;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
@@ -490,8 +485,8 @@ game_code = """
                 camera.rotation.y += (-mouse.x * 0.45 - camera.rotation.y) * 0.1;
                 camera.rotation.x += (mouse.y * 0.28 - camera.rotation.x) * 0.1;
 
-                kuronamiGroup.position.x = 0.24 + mouse.x * 0.04;
-                kuronamiGroup.position.y = -0.24 + mouse.y * 0.04;
+                akGroup.position.x = 0.24 + mouse.x * 0.04;
+                akGroup.position.y = -0.24 + mouse.y * 0.04;
 
                 if (recoilZ > 0) {
                     recoilZ -= 0.02;
@@ -502,8 +497,8 @@ game_code = """
                     if (recoilRotX < 0) recoilRotX = 0;
                 }
 
-                kuronamiGroup.position.z = -0.55 + recoilZ;
-                kuronamiGroup.rotation.x = recoilRotX;
+                akGroup.position.z = -0.55 + recoilZ;
+                akGroup.rotation.x = recoilRotX;
 
                 targets.forEach(t => {
                     t.position.x += t.userData.dx;
