@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="3D AimLab - Infinite Range & Realistic Guns", layout="centered")
+st.set_page_config(page_title="3D AimLab - Infinite Range Shot", layout="centered")
 
-st.title("⚡ 3D AimLab (무한 사거리 & 정밀 리얼 총기 모델링)")
-st.caption("거리 제약 없이 멀리 있는 과녁도 즉시 명중합니다. (WASD: 이동 | F 또는 좌클릭: 사격 | R: 탄창 회전 장전)")
+st.title("⚡ 3D AimLab (총알 사거리 무한 적용)")
+st.caption("총알 사거리가 무한대로 설정되어 멀리 있는 과녁도 제자리에서 즉시 맞출 수 있습니다.")
 
 game_code = """
 <!DOCTYPE html>
@@ -165,7 +165,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">CYBERPUNK AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 키 또는 좌클릭: 무한사거리 사격</b> | [R]: 장전</p>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 탄창 회전 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -305,16 +305,15 @@ game_code = """
             if (!scene) {
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x0e111a);
-                scene.fog = new THREE.FogExp2(0x0e111a, 0.008);
+                scene.fog = new THREE.FogExp2(0x0e111a, 0.005);
 
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 2000);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 5000);
                 camera.position.set(0, 1.6, 5);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, 500);
                 document.body.appendChild(renderer.domElement);
 
-                // 💡 사이버 조명
                 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
                 scene.add(ambientLight);
 
@@ -326,18 +325,16 @@ game_code = """
                 cyanLight.position.set(0, 6, 0);
                 scene.add(cyanLight);
 
-                // 바닥 및 그리드
-                const floorGeo = new THREE.PlaneGeometry(120, 120);
+                const floorGeo = new THREE.PlaneGeometry(200, 200);
                 const floorMat = new THREE.MeshStandardMaterial({ color: 0x141824, roughness: 0.2 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
                 scene.add(floor);
 
-                const gridHelper = new THREE.GridHelper(120, 60, 0x00f0ff, 0x27334d);
+                const gridHelper = new THREE.GridHelper(200, 100, 0x00f0ff, 0x27334d);
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 🎯 마우스 트래킹 시선 이동
                 window.addEventListener('mousemove', (e) => {
                     if (!isGameStarted) return;
                     const rect = renderer.domElement.getBoundingClientRect();
@@ -348,7 +345,6 @@ game_code = """
                     targetPitch = mouseY * 0.75;
                 });
 
-                // ⌨️ 키보드 입력 처리
                 window.addEventListener('keydown', (e) => {
                     const k = e.key.toLowerCase();
                     if (k in keys) keys[k] = true;
@@ -356,7 +352,7 @@ game_code = """
                     if (isGameStarted) {
                         if (k === 'e') goToMainMenu();
                         if (k === 'r') reload();
-                        if (k === 'f') shoot(); // 🔥 F 키 사격
+                        if (k === 'f') shoot();
                     }
                 });
 
@@ -365,7 +361,6 @@ game_code = """
                     if (k in keys) keys[k] = false;
                 });
 
-                // 🖱️ 클릭 사격
                 window.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
                         shoot();
@@ -383,9 +378,8 @@ game_code = """
             targets.forEach(t => scene.remove(t));
             targets = [];
             
-            // 🎯 가까운 거리부터 먼 거리까지 다양하게 배치
-            for (let i = 0; i < 7; i++) {
-                createTarget(i);
+            for (let i = 0; i < 5; i++) {
+                createTarget();
             }
 
             isGameStarted = true;
@@ -397,7 +391,6 @@ game_code = """
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        // 🎨 이미지 사양 기반 3D 총기 모델링
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
@@ -409,7 +402,6 @@ game_code = """
             const famasPolymerMat = new THREE.MeshStandardMaterial({ color: 0x21252b, roughness: 0.5, metalness: 0.3 });
 
             if (type === 'ak47') {
-                // 리얼 AK-47: 우드 개머리판, 권총 손잡이, 우드 핸드가드, 메탈 수신기
                 const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.42), steelMat);
                 weaponGroup.add(receiver);
 
@@ -446,7 +438,6 @@ game_code = """
                 sight.position.set(0, 0.055, -0.88);
                 weaponGroup.add(sight);
 
-                // 바나나 곡선 탄창
                 magazineMesh = new THREE.Group();
                 const magUpper = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.14, 0.08), darkSteelMat);
                 magUpper.position.set(0, 0, 0);
@@ -462,7 +453,6 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                // 리얼 Kar98k: 긴 클래식 레드 우드 바디, 볼트액션 메커니즘, 스코프
                 const fullStock = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.072, 1.25), darkWoodMat);
                 fullStock.position.set(0, -0.02, -0.22);
                 weaponGroup.add(fullStock);
@@ -493,7 +483,6 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                // 리얼 FAMAS: 불펍 프레임, 캐링 핸들, 수평 상단 레일
                 const body = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.14, 0.72), famasPolymerMat);
                 weaponGroup.add(body);
 
@@ -533,7 +522,7 @@ game_code = """
             scene.add(camera);
         }
 
-        function createTarget(index = 0) {
+        function createTarget() {
             const targetGroup = new THREE.Group();
 
             const canvas = document.createElement('canvas');
@@ -567,16 +556,15 @@ game_code = """
             disc.rotation.x = Math.PI / 2;
             targetGroup.add(disc);
 
-            // 🎯 가까운 원거리부터 무한히 멀리 있는 과녁 생성 (z 값 다양화)
-            targetGroup.position.x = (Math.random() - 0.5) * 18;
-            targetGroup.position.y = Math.random() * 3.5 + 0.8;
-            targetGroup.position.z = - (Math.random() * 45 + 5 + index * 10);
+            targetGroup.position.x = (Math.random() - 0.5) * 16;
+            targetGroup.position.y = Math.random() * 3.2 + 0.8;
+            targetGroup.position.z = -Math.random() * 20 - 5; // 일반적인 적정 거리 배치
 
             scene.add(targetGroup);
             targets.push(targetGroup);
         }
 
-        // 💥 거리 무한 사격 발사 (Raycaster far = Infinity)
+        // 🔥 총알 사거리 제한 해제 (Raycaster 사거리 = 무한)
         function shoot() {
             if (isReloading || !isGameStarted) return;
 
@@ -598,7 +586,7 @@ game_code = """
             setTimeout(() => { muzzleFlashMesh.material.opacity = 0; }, 35);
 
             const raycaster = new THREE.Raycaster();
-            raycaster.far = Infinity; // 🔥 거리 제약 무한으로 설정
+            raycaster.far = Infinity; // 🔥 거리 제한 없이 카메라 직선상의 모든 오브젝트 감지
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
             const intersects = raycaster.intersectObjects(scene.children, true);
@@ -612,13 +600,12 @@ game_code = """
                     score += 100;
                     hits++;
                     updateUI();
-                    createTarget(Math.floor(Math.random() * 5));
+                    createTarget();
                     break;
                 }
             }
         }
 
-        // 🔄 탄창 회전 재장전 모션
         function reload() {
             if (isReloading || ammo === maxAmmo || !isGameStarted) return;
             isReloading = true;
