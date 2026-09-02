@@ -1,16 +1,19 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - High-Detail Weapons Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Crosshair Cursor Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (High-Detail 3D Guns)")
-st.caption("가늠좌, 가늠쇠, 트리거 등 세부 부품이 정밀 구현된 3D 총기로 사격하세요!")
+st.title("🎯 3D Web AimLab (Crosshair Cursor Edition)")
+st.caption("실제 총기 사운드, 입체 3D 총기 모델 및 가늠좌/가늠쇠, 십자선 마우스 커서가 모두 적용된 버전입니다.")
 
 game_code = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
+        * {
+            cursor: crosshair !important; /* 화면 전체 마우스 커서를 십자선으로 고정 */
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -41,7 +44,6 @@ game_code = """
             font-size: 14px;
             font-weight: bold;
             border-radius: 4px;
-            cursor: pointer;
             transition: 0.2s;
         }
         .main-menu-btn:hover {
@@ -135,7 +137,6 @@ game_code = """
             font-size: 15px;
             font-weight: bold;
             border-radius: 4px;
-            cursor: pointer;
             transition: 0.2s;
         }
         .option-btn.selected {
@@ -152,7 +153,6 @@ game_code = """
             font-size: 20px;
             font-weight: bold;
             border-radius: 4px;
-            cursor: pointer;
             box-shadow: 0 4px 15px rgba(139, 69, 19, 0.5);
             margin-top: 20px;
         }
@@ -177,7 +177,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 2px; font-size: 32px;">3D AIMLAB STUDIO</h1>
-        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">가늠좌/가늠쇠가 적용된 정밀 3D 총기를 확인해 보세요.</p>
+        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">십자선 커서와 총기 사운드, 가늠좌/가늠쇠 디테일이 적용된 3D 사격장입니다.</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -441,7 +441,6 @@ game_code = """
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        // 디테일 강화된 총기 3D 모델
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
@@ -452,30 +451,25 @@ game_code = """
             const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a359, roughness: 0.2, metalness: 0.9 });
 
             if (type === 'ak47') {
-                // 리시버 (몸통)
                 const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), steelMat);
                 weaponGroup.add(mainBody);
 
-                // 상부 커버
                 const topCover = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.42, 12, 1, false, 0, Math.PI), steelMat);
                 topCover.rotation.z = Math.PI / 2;
                 topCover.rotation.y = Math.PI / 2;
                 topCover.position.set(0, 0.045, 0.01);
                 weaponGroup.add(topCover);
 
-                // 개머리판 (Stock)
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.12, 0.38), woodMat);
                 stock.position.set(0, -0.03, 0.39);
                 stock.rotation.x = -0.15;
                 weaponGroup.add(stock);
 
-                // 권총 손잡이 (Grip)
                 const grip = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.15, 0.065), woodMat);
                 grip.position.set(0, -0.12, 0.11);
                 grip.rotation.x = 0.38;
                 weaponGroup.add(grip);
 
-                // 핸드가드 (Wood Handguard)
                 const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.07, 0.28), woodMat);
                 lowerHandguard.position.set(0, -0.01, -0.34);
                 weaponGroup.add(lowerHandguard);
@@ -485,13 +479,11 @@ game_code = """
                 upperHandguard.position.set(0, 0.035, -0.33);
                 weaponGroup.add(upperHandguard);
 
-                // 총열 (Barrel)
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.78, 12), darkSteelMat);
                 barrel.rotation.x = Math.PI / 2;
                 barrel.position.set(0, 0.01, -0.6);
                 weaponGroup.add(barrel);
 
-                // 🎯 [디테일] 가늠좌 (Rear Sight)
                 const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.035, 0.09), darkSteelMat);
                 rearSightBase.position.set(0, 0.062, -0.18);
                 const rearSightLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.012, 0.06), steelMat);
@@ -499,7 +491,6 @@ game_code = """
                 weaponGroup.add(rearSightBase);
                 weaponGroup.add(rearSightLeaf);
 
-                // 🎯 [디테일] 가늠쇠 (Front Sight) & 가스블록
                 const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.065, 0.06), darkSteelMat);
                 gasBlock.position.set(0, 0.035, -0.62);
                 weaponGroup.add(gasBlock);
@@ -517,19 +508,16 @@ game_code = """
                 weaponGroup.add(frontSightPin);
                 weaponGroup.add(frontSightRing);
 
-                // 방아쇠 & 울
                 const triggerGuard = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.005, 8, 12, Math.PI), darkSteelMat);
                 triggerGuard.rotation.y = Math.PI / 2;
                 triggerGuard.position.set(0, -0.06, 0.05);
                 weaponGroup.add(triggerGuard);
 
-                // 장전 손잡이
                 const boltHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.06, 8), steelMat);
                 boltHandle.rotation.z = Math.PI / 2;
                 boltHandle.position.set(0.04, 0.03, -0.05);
                 weaponGroup.add(boltHandle);
 
-                // 탄창
                 magazineMesh = new THREE.Group();
                 const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.085), magMat);
                 magTop.position.set(0, -0.13, -0.02);
@@ -538,18 +526,15 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                // 우드 바디
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.09, 0.98), woodMat);
                 stock.position.set(0, -0.03, -0.1);
                 weaponGroup.add(stock);
 
-                // 롱 바디 총열
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.15, 12), darkSteelMat);
                 barrel.rotation.x = Math.PI / 2;
                 barrel.position.set(0, 0.02, -0.48);
                 weaponGroup.add(barrel);
 
-                // 🎯 [디테일] 정밀 스코프 (Scope) & 렌즈 링
                 const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.38, 16), darkSteelMat);
                 scopeBody.rotation.x = Math.PI / 2;
                 scopeBody.position.set(0, 0.082, -0.1);
@@ -567,7 +552,6 @@ game_code = """
                 weaponGroup.add(scopeMount1);
                 weaponGroup.add(scopeMount2);
 
-                // 🎯 [디테일] 볼트액션 메커니즘
                 const boltAction = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 12), steelMat);
                 boltAction.rotation.x = Math.PI / 2;
                 boltAction.position.set(0, 0.03, 0.12);
@@ -583,7 +567,6 @@ game_code = """
                 weaponGroup.add(boltHandleStem);
                 weaponGroup.add(boltKnob);
 
-                // 🎯 [디테일] 삼각 가늠쇠 (Front Sight)
                 const frontSight = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.03, 4), darkSteelMat);
                 frontSight.position.set(0, 0.05, -1.02);
                 weaponGroup.add(frontSight);
@@ -592,11 +575,9 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                // 불펍 메인 몸통
                 const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.13, 0.65), darkSteelMat);
                 weaponGroup.add(body);
 
-                // 🎯 [디테일] 운반 손잡이 & 가늠좌/가늠쇠 내장 구조
                 const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.52), darkSteelMat);
                 handleTop.position.set(0, 0.13, -0.05);
                 weaponGroup.add(handleTop);
@@ -609,7 +590,6 @@ game_code = """
                 handleSuppR.position.set(0, 0.08, 0.19);
                 weaponGroup.add(handleSuppR);
 
-                // 운반 손잡이 내부 조준기 (Front & Rear Sight inside handle)
                 const internalRearSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.02), steelMat);
                 internalRearSight.position.set(0, 0.08, 0.12);
                 const internalFrontSight = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.025, 8), goldMat);
@@ -618,18 +598,15 @@ game_code = """
                 weaponGroup.add(internalRearSight);
                 weaponGroup.add(internalFrontSight);
 
-                // 권총 손잡이
                 const grip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.065), magMat);
                 grip.position.set(0, -0.11, -0.05);
                 grip.rotation.x = 0.3;
                 weaponGroup.add(grip);
 
-                // 트리거 가드
                 const triggerGuard = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.12), darkSteelMat);
                 triggerGuard.position.set(0, -0.09, -0.08);
                 weaponGroup.add(triggerGuard);
 
-                // 총열 & 소염기
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.42, 12), steelMat);
                 barrel.rotation.x = Math.PI / 2;
                 barrel.position.set(0, 0.01, -0.5);
@@ -640,7 +617,6 @@ game_code = """
                 flashHider.position.set(0, 0.01, -0.69);
                 weaponGroup.add(flashHider);
 
-                // 불펍 후방 탄창
                 magazineMesh = new THREE.Group();
                 const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.19, 0.08), magMat);
                 mag.position.set(0, -0.13, 0.21);
