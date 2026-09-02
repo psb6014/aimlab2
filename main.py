@@ -1,19 +1,16 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Crosshair Cursor Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Pointer Lock Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (Crosshair Cursor Edition)")
-st.caption("실제 총기 사운드, 입체 3D 총기 모델 및 가늠좌/가늠쇠, 십자선 마우스 커서가 모두 적용된 버전입니다.")
+st.title("🎯 3D Web AimLab (Pointer Lock Edition)")
+st.caption("마우스 조작 시 화면과 총이 함께 움직이며, [E] 키를 누르면 메인 화면으로 나갑니다.")
 
 game_code = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        * {
-            cursor: crosshair !important; /* 화면 전체 마우스 커서를 십자선으로 고정 */
-        }
         body {
             margin: 0;
             overflow: hidden;
@@ -44,6 +41,7 @@ game_code = """
             font-size: 14px;
             font-weight: bold;
             border-radius: 4px;
+            cursor: pointer;
             transition: 0.2s;
         }
         .main-menu-btn:hover {
@@ -71,6 +69,7 @@ game_code = """
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 15;
+            display: none;
         }
         #crosshair::before, #crosshair::after {
             content: '';
@@ -90,7 +89,7 @@ game_code = """
             width: 100%;
             text-align: center;
             color: #ff3344;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             z-index: 10;
             text-shadow: 0 0 8px rgba(0,0,0,0.8);
@@ -108,7 +107,7 @@ game_code = """
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(26, 29, 36, 0.94);
+            background: rgba(26, 29, 36, 0.95);
             backdrop-filter: blur(6px);
             display: flex;
             flex-direction: column;
@@ -137,6 +136,7 @@ game_code = """
             font-size: 15px;
             font-weight: bold;
             border-radius: 4px;
+            cursor: pointer;
             transition: 0.2s;
         }
         .option-btn.selected {
@@ -155,6 +155,7 @@ game_code = """
             border-radius: 4px;
             box-shadow: 0 4px 15px rgba(139, 69, 19, 0.5);
             margin-top: 20px;
+            cursor: pointer;
         }
         .start-btn:hover {
             transform: scale(1.05);
@@ -164,7 +165,7 @@ game_code = """
 </head>
 <body>
     <div id="ui-panel">
-        <button class="main-menu-btn" onclick="goToMainMenu()">🏠 메인으로</button>
+        <button class="main-menu-btn" onclick="goToMainMenu()">🏠 메인으로 (E)</button>
         <div>점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
     </div>
     <div id="ammo-panel">
@@ -177,7 +178,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 2px; font-size: 32px;">3D AIMLAB STUDIO</h1>
-        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">십자선 커서와 총기 사운드, 가늠좌/가늠쇠 디테일이 적용된 3D 사격장입니다.</p>
+        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">화면 클릭 시 마우스가 고정되며, 게임 중 <b style="color:#00ff88">[E]</b> 키를 누르면 메뉴로 나갑니다.</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -231,14 +232,12 @@ game_code = """
                 filter.frequency.exponentialRampToValueAtTime(100, now + 0.35);
                 gain.gain.setValueAtTime(1.2, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
             } else if (type === 'kar98k') {
                 filter.type = 'lowpass';
                 filter.frequency.setValueAtTime(3000, now);
                 filter.frequency.exponentialRampToValueAtTime(80, now + 0.5);
                 gain.gain.setValueAtTime(1.6, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
             } else if (type === 'famas') {
                 filter.type = 'highpass';
                 filter.frequency.setValueAtTime(1200, now);
@@ -318,10 +317,14 @@ game_code = """
         let flashInterval = null;
 
         let targetRadius = 0.48;
-        let mouse = new THREE.Vector2();
 
         let weaponGroup, magazineMesh, muzzleFlashMesh;
         let recoilZ = 0, recoilRotX = 0;
+
+        // 카메라 회전 및 포인터 락 제어 변수
+        let yaw = 0, pitch = 0;
+        let mouseDeltaX = 0, mouseDeltaY = 0;
+        const sensitivity = 0.0022;
 
         function selectWeapon(weapon, btn) {
             selectedWeapon = weapon;
@@ -345,15 +348,24 @@ game_code = """
             else if (diff === 'hard') targetRadius = 0.32;
         }
 
+        function requestLock() {
+            if (renderer && renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
+        }
+
         function initGame() {
             initAudio();
             document.getElementById('startOverlay').style.display = 'none';
+            document.getElementById('crosshair').style.display = 'block';
             
             score = 0;
             totalShots = 0;
             hits = 0;
             ammo = maxAmmo;
             isReloading = false;
+            yaw = 0;
+            pitch = 0;
             updateUI();
             document.getElementById('reloadMsg').style.display = 'none';
 
@@ -402,22 +414,53 @@ game_code = """
                 wallGrid.position.set(0, 15, -24.9);
                 scene.add(wallGrid);
 
-                window.addEventListener('mousemove', (e) => {
-                    const rect = renderer.domElement.getBoundingClientRect();
-                    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                // 마우스 이동 제어 (Pointer Lock)
+                document.addEventListener('mousemove', (e) => {
+                    if (document.pointerLockElement === renderer.domElement && isGameStarted) {
+                        mouseDeltaX = e.movementX || 0;
+                        mouseDeltaY = e.movementY || 0;
+
+                        yaw -= mouseDeltaX * sensitivity;
+                        pitch -= mouseDeltaY * sensitivity;
+
+                        // 상하 회전각 제한 (-80도 ~ 80도)
+                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+                    }
                 });
 
+                // 사격 이벤트
                 window.addEventListener('mousedown', (e) => {
-                    if (e.button === 0 && isGameStarted) shoot();
+                    if (e.button === 0 && isGameStarted) {
+                        if (document.pointerLockElement !== renderer.domElement) {
+                            requestLock();
+                        } else {
+                            shoot();
+                        }
+                    }
                 });
 
+                // 키보드 입력 (E: 메인메뉴, R: 재장전)
                 window.addEventListener('keydown', (e) => {
-                    if ((e.key === 'r' || e.key === 'R') && isGameStarted) reload();
+                    if (isGameStarted) {
+                        if (e.key === 'e' || e.key === 'E') {
+                            goToMainMenu();
+                        } else if (e.key === 'r' || e.key === 'R') {
+                            reload();
+                        }
+                    }
+                });
+
+                // Pointer Lock 해제 감지 (Esc 포함)
+                document.addEventListener('pointerlockchange', () => {
+                    if (document.pointerLockElement !== renderer.domElement && isGameStarted) {
+                        goToMainMenu();
+                    }
                 });
 
                 animate();
             }
+
+            requestLock();
 
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
@@ -436,8 +479,12 @@ game_code = """
 
         function goToMainMenu() {
             isGameStarted = false;
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
             if (flashInterval) clearInterval(flashInterval);
             document.getElementById('warningText').innerText = "";
+            document.getElementById('crosshair').style.display = 'none';
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
@@ -634,7 +681,7 @@ game_code = """
 
             weaponGroup.add(muzzleFlashMesh);
 
-            weaponGroup.position.set(0.24, -0.24, -0.55);
+            weaponGroup.position.set(0.22, -0.22, -0.52);
             camera.add(weaponGroup);
             scene.add(camera);
         }
@@ -711,8 +758,9 @@ game_code = """
                 muzzleFlashMesh.material.opacity = 0;
             }, 35);
 
+            // 중앙 화면 고정 레이캐스팅
             const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
             const intersects = raycaster.intersectObjects(scene.children, true);
 
@@ -783,11 +831,12 @@ game_code = """
 
         function triggerFlash() {
             if (!isGameStarted) return;
-            document.getElementById('warningText').innerText = "⚠️ FLASHBANG INCOMING! (구석으로 커서를 피하세요!)";
+            document.getElementById('warningText').innerText = "⚠️ FLASHBANG INCOMING! (고개를 빠르게 돌리세요!)";
 
             setTimeout(() => {
                 document.getElementById('warningText').innerText = "";
-                if (Math.hypot(mouse.x, mouse.y) < 0.65 && isGameStarted) {
+                // 고개를 충분히 돌리지 않은 경우(정면을 보고 있을 때) 뱅 효과
+                if (Math.abs(yaw % (Math.PI * 2)) < 0.8 && isGameStarted) {
                     const flashOverlay = document.getElementById('flashOverlay');
                     flashOverlay.style.opacity = '1';
                     setTimeout(() => {
@@ -801,12 +850,19 @@ game_code = """
             requestAnimationFrame(animate);
 
             if (isGameStarted) {
-                camera.rotation.y += (-mouse.x * 0.45 - camera.rotation.y) * 0.1;
-                camera.rotation.x += (mouse.y * 0.28 - camera.rotation.x) * 0.1;
+                // 카메라 회전 적용 (Euler 오더: YXZ)
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
 
-                weaponGroup.position.x = 0.24 + mouse.x * 0.04;
-                weaponGroup.position.y = -0.24 + mouse.y * 0.04;
+                // 총기 마우스 움직임 반사 (Weapon Sway)
+                weaponGroup.position.x = 0.22 - mouseDeltaX * 0.0003;
+                weaponGroup.position.y = -0.22 + mouseDeltaY * 0.0003;
 
+                mouseDeltaX *= 0.85;
+                mouseDeltaY *= 0.85;
+
+                // 반동 감쇄
                 if (recoilZ > 0) {
                     recoilZ -= 0.02;
                     if (recoilZ < 0) recoilZ = 0;
@@ -816,7 +872,7 @@ game_code = """
                     if (recoilRotX < 0) recoilRotX = 0;
                 }
 
-                weaponGroup.position.z = -0.55 + recoilZ;
+                weaponGroup.position.z = -0.52 + recoilZ;
                 weaponGroup.rotation.x = recoilRotX;
             }
 
