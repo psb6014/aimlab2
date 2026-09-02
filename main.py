@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Pointer Lock Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Cyber Portal Edition", layout="centered")
 
-st.title("🎯 3D Web AimLab (Pointer Lock Edition)")
-st.caption("마우스 조작 시 화면과 총이 함께 움직이며, [E] 키를 누르면 메인 화면으로 나갑니다.")
+st.title("⚡ 3D Cyberpunk AimLab (Portal Reload Edition)")
+st.caption("WASD 자유 이동, 총기 옆 차원 포탈 장전 애니메이션, 사이버 맵 디자인이 모두 통합되었습니다.")
 
 game_code = """
 <!DOCTYPE html>
@@ -14,7 +14,7 @@ game_code = """
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #1a1d24;
+            background-color: #080911;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
@@ -22,11 +22,11 @@ game_code = """
             position: absolute;
             top: 15px;
             left: 20px;
-            color: #fff;
+            color: #00f0ff;
             font-size: 18px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
             pointer-events: none;
             display: flex;
             align-items: center;
@@ -34,29 +34,31 @@ game_code = """
         }
         .main-menu-btn {
             pointer-events: auto;
-            background: #2b2e33;
-            color: #d4a359;
-            border: 1px solid #d4a359;
-            padding: 5px 12px;
+            background: rgba(10, 15, 30, 0.8);
+            color: #ff0055;
+            border: 1px solid #ff0055;
+            padding: 6px 14px;
             font-size: 14px;
             font-weight: bold;
             border-radius: 4px;
             cursor: pointer;
             transition: 0.2s;
+            box-shadow: 0 0 8px rgba(255, 0, 85, 0.4);
         }
         .main-menu-btn:hover {
-            background: #d4a359;
-            color: #000;
+            background: #ff0055;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.8);
         }
         #ammo-panel {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            color: #d4a359;
+            color: #00f0ff;
             font-size: 28px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            text-shadow: 0 0 12px rgba(0, 240, 255, 0.8);
             pointer-events: none;
             text-align: right;
         }
@@ -64,8 +66,8 @@ game_code = """
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 15;
@@ -74,31 +76,31 @@ game_code = """
         #crosshair::before, #crosshair::after {
             content: '';
             position: absolute;
-            background: #00ff88;
-            box-shadow: 0 0 4px #00ff88;
+            background: #00f0ff;
+            box-shadow: 0 0 6px #00f0ff;
         }
         #crosshair::before {
-            top: 4px; left: -6px; width: 22px; height: 2px;
+            top: 5px; left: -8px; width: 28px; height: 2px;
         }
         #crosshair::after {
-            top: -6px; left: 4px; width: 2px; height: 22px;
+            top: -8px; left: 5px; width: 2px; height: 28px;
         }
         #warningText {
             position: absolute;
             top: 60px;
             width: 100%;
             text-align: center;
-            color: #ff3344;
+            color: #ff0055;
             font-size: 22px;
             font-weight: bold;
             z-index: 10;
-            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.9);
             pointer-events: none;
         }
         #flashOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: white;
+            background-color: cyan;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.1s;
@@ -107,8 +109,8 @@ game_code = """
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(26, 29, 36, 0.95);
-            backdrop-filter: blur(6px);
+            background: rgba(8, 9, 17, 0.94);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -117,21 +119,22 @@ game_code = """
             color: white;
         }
         .section-title {
-            color: #d4a359;
+            color: #00f0ff;
             font-size: 14px;
             font-weight: bold;
-            margin-top: 12px;
+            margin-top: 14px;
             margin-bottom: 6px;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
         }
         .btn-container {
             display: flex;
             gap: 12px;
         }
         .option-btn {
-            background: #2b2f3a;
-            color: #ece8e1;
-            border: 2px solid #454c5e;
+            background: #121526;
+            color: #a0b0d0;
+            border: 2px solid #202744;
             padding: 8px 18px;
             font-size: 15px;
             font-weight: bold;
@@ -140,25 +143,27 @@ game_code = """
             transition: 0.2s;
         }
         .option-btn.selected {
-            background: #b87333;
-            color: #fff;
-            border-color: #d4a359;
-            box-shadow: 0 0 12px rgba(212,163,89,0.5);
+            background: #00f0ff;
+            color: #080911;
+            border-color: #00f0ff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
         }
         .start-btn {
-            background: linear-gradient(135deg, #b87333, #8b4513);
+            background: linear-gradient(135deg, #ff0055, #9900ff);
             color: white;
             border: none;
-            padding: 12px 40px;
+            padding: 12px 45px;
             font-size: 20px;
             font-weight: bold;
             border-radius: 4px;
-            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.5);
-            margin-top: 20px;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+            margin-top: 22px;
             cursor: pointer;
+            transition: 0.2s;
         }
         .start-btn:hover {
-            transform: scale(1.05);
+            transform: scale(1.06);
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.9);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -166,25 +171,25 @@ game_code = """
 <body>
     <div id="ui-panel">
         <button class="main-menu-btn" onclick="goToMainMenu()">🏠 메인으로 (E)</button>
-        <div>점수: <span id="score" style="color:#d4a359">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
+        <div>점수: <span id="score" style="color:#00f0ff">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
     </div>
     <div id="ammo-panel">
         AMMO: <span id="ammo">30</span> / <span id="maxAmmo">30</span>
-        <div id="reloadMsg" style="font-size:16px; color:#ff4655; display:none;">[R] 키를 눌러 재장전!</div>
+        <div id="reloadMsg" style="font-size:16px; color:#ff0055; display:none;">[R] 키를 눌러 차원 재장전!</div>
     </div>
     <div id="crosshair"></div>
     <div id="warningText"></div>
     <div id="flashOverlay"></div>
 
     <div id="startOverlay">
-        <h1 style="color: #d4a359; text-shadow: 0 0 12px rgba(212,163,89,0.6); margin-bottom: 2px; font-size: 32px;">3D AIMLAB STUDIO</h1>
-        <p style="color: #a0a7b5; margin-bottom: 15px; font-size: 14px;">화면 클릭 시 마우스가 고정되며, 게임 중 <b style="color:#00ff88">[E]</b> 키를 누르면 메뉴로 나갑니다.</p>
+        <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 34px;">CYBER AIMLAB 3D</h1>
+        <p style="color: #8a9bbd; margin-bottom: 15px; font-size: 14px;">WASD로 이동 | 마우스로 사격 | R: 차원 포탈 장전 | E: 메인 메뉴</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
-            <button class="option-btn selected" onclick="selectWeapon('ak47', this)">AK-47</button>
-            <button class="option-btn" onclick="selectWeapon('kar98k', this)">Kar98k (Scope)</button>
-            <button class="option-btn" onclick="selectWeapon('famas', this)">FAMAS</button>
+            <button class="option-btn selected" onclick="selectWeapon('ak47', this)">CYBER AK</button>
+            <button class="option-btn" onclick="selectWeapon('kar98k', this)">NEON SNIPER</button>
+            <button class="option-btn" onclick="selectWeapon('famas', this)">PLASMA FAMAS</button>
         </div>
 
         <div class="section-title">TARGET SIZE</div>
@@ -194,7 +199,7 @@ game_code = """
             <button class="option-btn" onclick="selectDiff('hard', this)">SMALL</button>
         </div>
 
-        <button class="start-btn" onclick="initGame()">게 임 시 작</button>
+        <button class="start-btn" onclick="initGame()">시 작 하 기</button>
     </div>
 
     <script>
@@ -212,7 +217,7 @@ game_code = """
         function playGunSound(type) {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
-            const bufferSize = audioCtx.sampleRate * 0.5;
+            const bufferSize = audioCtx.sampleRate * 0.4;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = buffer.getChannelData(0);
 
@@ -228,80 +233,47 @@ game_code = """
 
             if (type === 'ak47') {
                 filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(800, now);
-                filter.frequency.exponentialRampToValueAtTime(100, now + 0.35);
-                gain.gain.setValueAtTime(1.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                filter.frequency.setValueAtTime(1000, now);
+                filter.frequency.exponentialRampToValueAtTime(120, now + 0.3);
+                gain.gain.setValueAtTime(1.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
             } else if (type === 'kar98k') {
                 filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(3000, now);
-                filter.frequency.exponentialRampToValueAtTime(80, now + 0.5);
-                gain.gain.setValueAtTime(1.6, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                filter.frequency.setValueAtTime(3500, now);
+                filter.frequency.exponentialRampToValueAtTime(60, now + 0.45);
+                gain.gain.setValueAtTime(1.7, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
             } else if (type === 'famas') {
                 filter.type = 'highpass';
-                filter.frequency.setValueAtTime(1200, now);
-                filter.frequency.exponentialRampToValueAtTime(200, now + 0.22);
-                gain.gain.setValueAtTime(1.0, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                filter.frequency.setValueAtTime(1500, now);
+                filter.frequency.exponentialRampToValueAtTime(250, now + 0.2);
+                gain.gain.setValueAtTime(1.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
             }
 
             noise.connect(filter);
             filter.connect(gain);
             gain.connect(audioCtx.destination);
             noise.start(now);
+        }
 
-            const osc = audioCtx.createOscillator();
-            const oscGain = audioCtx.createGain();
-            osc.type = 'triangle';
+        function playPortalReloadSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
             
-            if (type === 'kar98k') {
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
-                oscGain.gain.setValueAtTime(0.8, now);
-                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-            } else {
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-                oscGain.gain.setValueAtTime(0.5, now);
-                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-            }
-
-            osc.connect(oscGain);
-            oscGain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.4);
-        }
-
-        function playEmptyClick() {
-            if (!audioCtx) return;
-            const now = audioCtx.currentTime;
+            // 차원 포탈 오픈 라이징 사운드
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(800, now);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.6);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+            
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + 0.05);
-        }
-
-        function playReloadSound() {
-            if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.15);
+            osc.stop(now + 0.8);
         }
 
         let scene, camera, renderer;
@@ -319,12 +291,18 @@ game_code = """
         let targetRadius = 0.48;
 
         let weaponGroup, magazineMesh, muzzleFlashMesh;
+        let portalGroup, portalRingMesh;
         let recoilZ = 0, recoilRotX = 0;
 
-        // 카메라 회전 및 포인터 락 제어 변수
+        // 마우스 & 카메라 제어
         let yaw = 0, pitch = 0;
         let mouseDeltaX = 0, mouseDeltaY = 0;
         const sensitivity = 0.0022;
+
+        // WASD 이동 변수
+        const keys = { w: false, a: false, s: false, d: false };
+        const moveSpeed = 0.12;
+        let walkTimer = 0;
 
         function selectWeapon(weapon, btn) {
             selectedWeapon = weapon;
@@ -371,50 +349,53 @@ game_code = """
 
             if (!scene) {
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x282c35);
-                scene.fog = new THREE.FogExp2(0x282c35, 0.012);
+                scene.background = new THREE.Color(0x06070c);
+                scene.fog = new THREE.FogExp2(0x06070c, 0.02);
 
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
-                camera.position.set(0, 1.6, 0);
+                camera.position.set(0, 1.6, 5);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, 500);
                 renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+                // 라이팅 설정
+                const ambientLight = new THREE.AmbientLight(0x1a2035, 1.2);
                 scene.add(ambientLight);
 
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-                dirLight.position.set(6, 15, 8);
-                scene.add(dirLight);
+                const cyanLight = new THREE.PointLight(0x00f0ff, 2, 25);
+                cyanLight.position.set(0, 6, 0);
+                scene.add(cyanLight);
 
-                const backLight = new THREE.DirectionalLight(0xd4a359, 0.5);
-                backLight.position.set(-5, 5, -10);
-                scene.add(backLight);
+                const magentaLight = new THREE.PointLight(0xff0055, 2, 25);
+                magentaLight.position.set(0, 3, -10);
+                scene.add(magentaLight);
 
-                const floorGeo = new THREE.PlaneGeometry(60, 60);
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x323742, roughness: 0.8 });
+                // 사이버 바닥 (그리드)
+                const floorGeo = new THREE.PlaneGeometry(80, 80);
+                const floorMat = new THREE.MeshStandardMaterial({ color: 0x090b14, roughness: 0.2, metalness: 0.8 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
                 scene.add(floor);
 
-                const gridHelper = new THREE.GridHelper(60, 30, 0xd4a359, 0x4a5160);
+                const gridHelper = new THREE.GridHelper(80, 40, 0x00f0ff, 0x182035);
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                const wallGeo = new THREE.PlaneGeometry(60, 30);
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x21252d, roughness: 0.6 });
+                // 네온 정면 벽면
+                const wallGeo = new THREE.PlaneGeometry(80, 35);
+                const wallMat = new THREE.MeshStandardMaterial({ color: 0x0b0d18, roughness: 0.5 });
                 const backWall = new THREE.Mesh(wallGeo, wallMat);
-                backWall.position.set(0, 15, -25);
+                backWall.position.set(0, 17.5, -25);
                 scene.add(backWall);
 
-                const wallGrid = new THREE.GridHelper(60, 20, 0x5a6375, 0x3a404d);
+                const wallGrid = new THREE.GridHelper(80, 30, 0xff0055, 0x201530);
                 wallGrid.rotation.x = Math.PI / 2;
-                wallGrid.position.set(0, 15, -24.9);
+                wallGrid.position.set(0, 17.5, -24.9);
                 scene.add(wallGrid);
 
-                // 마우스 이동 제어 (Pointer Lock)
+                // 이벤트 리스너 등록
                 document.addEventListener('mousemove', (e) => {
                     if (document.pointerLockElement === renderer.domElement && isGameStarted) {
                         mouseDeltaX = e.movementX || 0;
@@ -422,13 +403,25 @@ game_code = """
 
                         yaw -= mouseDeltaX * sensitivity;
                         pitch -= mouseDeltaY * sensitivity;
-
-                        // 상하 회전각 제한 (-80도 ~ 80도)
                         pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
                     }
                 });
 
-                // 사격 이벤트
+                window.addEventListener('keydown', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k in keys) keys[k] = true;
+
+                    if (isGameStarted) {
+                        if (k === 'e') goToMainMenu();
+                        if (k === 'r') reload();
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    const k = e.key.toLowerCase();
+                    if (k in keys) keys[k] = false;
+                });
+
                 window.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
                         if (document.pointerLockElement !== renderer.domElement) {
@@ -439,18 +432,6 @@ game_code = """
                     }
                 });
 
-                // 키보드 입력 (E: 메인메뉴, R: 재장전)
-                window.addEventListener('keydown', (e) => {
-                    if (isGameStarted) {
-                        if (e.key === 'e' || e.key === 'E') {
-                            goToMainMenu();
-                        } else if (e.key === 'r' || e.key === 'R') {
-                            reload();
-                        }
-                    }
-                });
-
-                // Pointer Lock 해제 감지 (Esc 포함)
                 document.addEventListener('pointerlockchange', () => {
                     if (document.pointerLockElement !== renderer.domElement && isGameStarted) {
                         goToMainMenu();
@@ -460,10 +441,12 @@ game_code = """
                 animate();
             }
 
+            camera.position.set(0, 1.6, 5);
             requestLock();
 
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
+            buildPortalModel();
 
             targets.forEach(t => scene.remove(t));
             targets = [];
@@ -488,181 +471,93 @@ game_code = """
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
+        // 🌀 차원 포탈 생성
+        function buildPortalModel() {
+            portalGroup = new THREE.Group();
+            
+            const ringGeo = new THREE.TorusGeometry(0.18, 0.025, 16, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x9900ff, wireframe: true });
+            portalRingMesh = new THREE.Mesh(ringGeo, ringMat);
+            portalGroup.add(portalRingMesh);
+
+            const coreGeo = new THREE.CircleGeometry(0.16, 32);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            portalGroup.add(core);
+
+            portalGroup.position.set(0.42, -0.05, -0.45);
+            portalGroup.scale.set(0.001, 0.001, 0.001); // 초기 숨김 상태
+            
+            weaponGroup.add(portalGroup);
+        }
+
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
-            const steelMat = new THREE.MeshStandardMaterial({ color: 0x4a4e57, roughness: 0.25, metalness: 0.9 });
-            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1d2026, roughness: 0.3, metalness: 0.95 });
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.4, metalness: 0.05 });
-            const magMat = new THREE.MeshStandardMaterial({ color: 0x2b2e36, roughness: 0.35, metalness: 0.8 });
-            const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a359, roughness: 0.2, metalness: 0.9 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x151822, roughness: 0.2, metalness: 0.9 });
+            const neonCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+            const neonMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+            const magMat = new THREE.MeshStandardMaterial({ color: 0x22283a, roughness: 0.3, metalness: 0.8 });
 
             if (type === 'ak47') {
-                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), steelMat);
+                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), bodyMat);
                 weaponGroup.add(mainBody);
 
-                const topCover = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.42, 12, 1, false, 0, Math.PI), steelMat);
-                topCover.rotation.z = Math.PI / 2;
-                topCover.rotation.y = Math.PI / 2;
-                topCover.position.set(0, 0.045, 0.01);
-                weaponGroup.add(topCover);
+                const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.02, 0.3), neonCyanMat);
+                stripe1.position.set(0, 0.02, -0.05);
+                weaponGroup.add(stripe1);
 
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.12, 0.38), woodMat);
-                stock.position.set(0, -0.03, 0.39);
-                stock.rotation.x = -0.15;
-                weaponGroup.add(stock);
-
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.15, 0.065), woodMat);
-                grip.position.set(0, -0.12, 0.11);
-                grip.rotation.x = 0.38;
-                weaponGroup.add(grip);
-
-                const lowerHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.07, 0.28), woodMat);
-                lowerHandguard.position.set(0, -0.01, -0.34);
-                weaponGroup.add(lowerHandguard);
-
-                const upperHandguard = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.26, 12), woodMat);
-                upperHandguard.rotation.x = Math.PI / 2;
-                upperHandguard.position.set(0, 0.035, -0.33);
-                weaponGroup.add(upperHandguard);
-
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.78, 12), darkSteelMat);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), bodyMat);
                 barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.01, -0.6);
+                barrel.position.set(0, 0.01, -0.58);
                 weaponGroup.add(barrel);
 
-                const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.035, 0.09), darkSteelMat);
-                rearSightBase.position.set(0, 0.062, -0.18);
-                const rearSightLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.012, 0.06), steelMat);
-                rearSightLeaf.position.set(0, 0.078, -0.18);
-                weaponGroup.add(rearSightBase);
-                weaponGroup.add(rearSightLeaf);
-
-                const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.065, 0.06), darkSteelMat);
-                gasBlock.position.set(0, 0.035, -0.62);
-                weaponGroup.add(gasBlock);
-
-                const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.08, 0.04), darkSteelMat);
-                frontSightBase.position.set(0, 0.05, -0.9);
-                
-                const frontSightPin = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.03, 8), goldMat);
-                frontSightPin.position.set(0, 0.085, -0.9);
-                
-                const frontSightRing = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.004, 8, 16), darkSteelMat);
-                frontSightRing.position.set(0, 0.085, -0.9);
-
-                weaponGroup.add(frontSightBase);
-                weaponGroup.add(frontSightPin);
-                weaponGroup.add(frontSightRing);
-
-                const triggerGuard = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.005, 8, 12, Math.PI), darkSteelMat);
-                triggerGuard.rotation.y = Math.PI / 2;
-                triggerGuard.position.set(0, -0.06, 0.05);
-                weaponGroup.add(triggerGuard);
-
-                const boltHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.06, 8), steelMat);
-                boltHandle.rotation.z = Math.PI / 2;
-                boltHandle.position.set(0.04, 0.03, -0.05);
-                weaponGroup.add(boltHandle);
+                const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.06, 0.03), neonMagentaMat);
+                frontSight.position.set(0, 0.06, -0.88);
+                weaponGroup.add(frontSight);
 
                 magazineMesh = new THREE.Group();
                 const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.085), magMat);
                 magTop.position.set(0, -0.13, -0.02);
                 magTop.rotation.x = -0.3;
+                
+                const magNeon = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.02, 0.088), neonCyanMat);
+                magNeon.position.set(0, -0.18, -0.04);
+                magNeon.rotation.x = -0.3;
+
                 magazineMesh.add(magTop);
+                magazineMesh.add(magNeon);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.09, 0.98), woodMat);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.08, 0.95), bodyMat);
                 stock.position.set(0, -0.03, -0.1);
                 weaponGroup.add(stock);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.15, 12), darkSteelMat);
-                barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.02, -0.48);
-                weaponGroup.add(barrel);
-
-                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.38, 16), darkSteelMat);
+                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 16), bodyMat);
                 scopeBody.rotation.x = Math.PI / 2;
-                scopeBody.position.set(0, 0.082, -0.1);
+                scopeBody.position.set(0, 0.085, -0.1);
                 weaponGroup.add(scopeBody);
 
-                const scopeFrontRing = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.05, 16), steelMat);
-                scopeFrontRing.rotation.x = Math.PI / 2;
-                scopeFrontRing.position.set(0, 0.082, -0.27);
-                weaponGroup.add(scopeFrontRing);
-
-                const scopeMount1 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.03), steelMat);
-                scopeMount1.position.set(0, 0.05, -0.22);
-                const scopeMount2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.03), steelMat);
-                scopeMount2.position.set(0, 0.05, 0.02);
-                weaponGroup.add(scopeMount1);
-                weaponGroup.add(scopeMount2);
-
-                const boltAction = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.22, 12), steelMat);
-                boltAction.rotation.x = Math.PI / 2;
-                boltAction.position.set(0, 0.03, 0.12);
-                weaponGroup.add(boltAction);
-
-                const boltHandleStem = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 8), steelMat);
-                boltHandleStem.rotation.z = Math.PI / 3;
-                boltHandleStem.position.set(0.04, 0.02, 0.16);
-                
-                const boltKnob = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 10), darkSteelMat);
-                boltKnob.position.set(0.075, -0.01, 0.16);
-
-                weaponGroup.add(boltHandleStem);
-                weaponGroup.add(boltKnob);
-
-                const frontSight = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.03, 4), darkSteelMat);
-                frontSight.position.set(0, 0.05, -1.02);
-                weaponGroup.add(frontSight);
+                const scopeGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 16), neonCyanMat);
+                scopeGlow.rotation.x = Math.PI / 2;
+                scopeGlow.position.set(0, 0.085, -0.29);
+                weaponGroup.add(scopeGlow);
 
                 magazineMesh = new THREE.Group();
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.13, 0.65), darkSteelMat);
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.13, 0.65), bodyMat);
                 weaponGroup.add(body);
 
-                const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.52), darkSteelMat);
+                const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.52), bodyMat);
                 handleTop.position.set(0, 0.13, -0.05);
                 weaponGroup.add(handleTop);
 
-                const handleSuppL = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.085, 0.04), darkSteelMat);
-                handleSuppL.position.set(0, 0.08, -0.29);
-                weaponGroup.add(handleSuppL);
-
-                const handleSuppR = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.085, 0.04), darkSteelMat);
-                handleSuppR.position.set(0, 0.08, 0.19);
-                weaponGroup.add(handleSuppR);
-
-                const internalRearSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.02), steelMat);
-                internalRearSight.position.set(0, 0.08, 0.12);
-                const internalFrontSight = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.025, 8), goldMat);
-                internalFrontSight.position.set(0, 0.08, -0.24);
-
-                weaponGroup.add(internalRearSight);
-                weaponGroup.add(internalFrontSight);
-
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.065), magMat);
-                grip.position.set(0, -0.11, -0.05);
-                grip.rotation.x = 0.3;
-                weaponGroup.add(grip);
-
-                const triggerGuard = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.12), darkSteelMat);
-                triggerGuard.position.set(0, -0.09, -0.08);
-                weaponGroup.add(triggerGuard);
-
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.42, 12), steelMat);
-                barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.01, -0.5);
-                weaponGroup.add(barrel);
-
-                const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.016, 0.08, 12), darkSteelMat);
-                flashHider.rotation.x = Math.PI / 2;
-                flashHider.position.set(0, 0.01, -0.69);
-                weaponGroup.add(flashHider);
+                const neonLine = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.015, 0.48), neonMagentaMat);
+                neonLine.position.set(0, 0.02, -0.05);
+                weaponGroup.add(neonLine);
 
                 magazineMesh = new THREE.Group();
                 const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.19, 0.08), magMat);
@@ -672,13 +567,9 @@ game_code = """
             }
 
             const flashGeo = new THREE.OctahedronGeometry(0.12, 0);
-            const flashMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0 });
+            const flashMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
-            
-            if (type === 'kar98k') muzzleFlashMesh.position.set(0, 0.02, -1.08);
-            else if (type === 'famas') muzzleFlashMesh.position.set(0, 0.01, -0.74);
-            else muzzleFlashMesh.position.set(0, 0.01, -1.0);
-
+            muzzleFlashMesh.position.set(0, 0.01, -0.9);
             weaponGroup.add(muzzleFlashMesh);
 
             weaponGroup.position.set(0.22, -0.22, -0.52);
@@ -694,18 +585,16 @@ game_code = """
             canvas.height = 256;
             const ctx = canvas.getContext('2d');
 
-            const rings = [
-                { r: 128, color: '#ff2233' },
-                { r: 100, color: '#ffffff' },
-                { r: 72,  color: '#ff2233' },
-                { r: 44,  color: '#ffffff' },
-                { r: 20,  color: '#ff1122' }
-            ];
+            ctx.fillStyle = '#06070c';
+            ctx.fillRect(0,0,256,256);
 
-            rings.forEach(ring => {
+            const colors = ['#ff0055', '#00f0ff', '#ffffff', '#ff0055'];
+            const radii = [120, 90, 60, 30];
+
+            radii.forEach((r, idx) => {
                 ctx.beginPath();
-                ctx.arc(128, 128, ring.r, 0, Math.PI * 2);
-                ctx.fillStyle = ring.color;
+                ctx.arc(128, 128, r, 0, Math.PI * 2);
+                ctx.fillStyle = colors[idx];
                 ctx.fill();
             });
 
@@ -713,18 +602,18 @@ game_code = """
             
             const discGeo = new THREE.CylinderGeometry(targetRadius, targetRadius, 0.06, 32);
             const discMat = [
-                new THREE.MeshStandardMaterial({ color: 0x222222 }),
-                new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3 }),
-                new THREE.MeshStandardMaterial({ color: 0x111111 })
+                new THREE.MeshStandardMaterial({ color: 0x111525 }),
+                new THREE.MeshStandardMaterial({ map: texture, roughness: 0.2 }),
+                new THREE.MeshStandardMaterial({ color: 0x05070e })
             ];
 
             const disc = new THREE.Mesh(discGeo, discMat);
             disc.rotation.x = Math.PI / 2;
             targetGroup.add(disc);
 
-            targetGroup.position.x = (Math.random() - 0.5) * 11;
-            targetGroup.position.y = Math.random() * 2.8 + 0.9;
-            targetGroup.position.z = -Math.random() * 8 - 4;
+            targetGroup.position.x = (Math.random() - 0.5) * 14;
+            targetGroup.position.y = Math.random() * 3.2 + 0.8;
+            targetGroup.position.z = -Math.random() * 10 - 5;
 
             scene.add(targetGroup);
             targets.push(targetGroup);
@@ -734,7 +623,6 @@ game_code = """
             if (isReloading || !isGameStarted) return;
 
             if (ammo <= 0) {
-                playEmptyClick();
                 document.getElementById('reloadMsg').style.display = 'block';
                 return;
             }
@@ -745,20 +633,14 @@ game_code = """
             totalShots++;
             updateUI();
 
-            if (selectedWeapon === 'kar98k') {
-                recoilZ = 0.32;
-                recoilRotX = 0.28;
-            } else {
-                recoilZ = 0.18;
-                recoilRotX = 0.16;
-            }
+            recoilZ = 0.18;
+            recoilRotX = 0.16;
 
             muzzleFlashMesh.material.opacity = 1.0;
             setTimeout(() => {
                 muzzleFlashMesh.material.opacity = 0;
             }, 35);
 
-            // 중앙 화면 고정 레이캐스팅
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
@@ -770,7 +652,7 @@ game_code = """
                     scene.remove(hitParent);
                     targets = targets.filter(t => t !== hitParent);
                     
-                    score += (selectedWeapon === 'kar98k') ? 150 : 100;
+                    score += 100;
                     hits++;
                     updateUI();
                     createTarget();
@@ -783,42 +665,51 @@ game_code = """
             }
         }
 
+        // 🌀 차원 포탈 재장전 로직
         function reload() {
             if (isReloading || ammo === maxAmmo || !isGameStarted) return;
             isReloading = true;
-            playReloadSound();
-            document.getElementById('reloadMsg').innerText = "재장전 중...";
+            playPortalReloadSound();
+            document.getElementById('reloadMsg').innerText = "차원 포탈 탄창 생성 중...";
 
             let progress = 0;
             const reloadInterval = setInterval(() => {
-                progress += 0.025;
+                progress += 0.02;
 
-                if (progress <= 0.3) {
-                    const p = progress / 0.3;
-                    magazineMesh.position.y = -0.35 * p;
-                    weaponGroup.rotation.z = 0.2 * p;
-                } else if (progress > 0.3 && progress <= 0.75) {
-                    const p = (progress - 0.3) / 0.45;
-                    magazineMesh.position.y = -0.35 - Math.sin(p * Math.PI) * 0.08;
-                    magazineMesh.rotation.x = -p * Math.PI * 2;
-                } else if (progress > 0.75 && progress <= 1.0) {
-                    const p = (progress - 0.75) / 0.25;
-                    magazineMesh.position.y = -0.35 * (1 - p);
-                    magazineMesh.rotation.x = 0;
-                    weaponGroup.rotation.z = 0.2 * (1 - p);
+                // 1단계: 포탈 열림 & 총기 기울임
+                if (progress <= 0.25) {
+                    const p = progress / 0.25;
+                    portalGroup.scale.set(p, p, p);
+                    portalRingMesh.rotation.z = p * Math.PI * 2;
+                    weaponGroup.rotation.z = -0.25 * p;
+                    magazineMesh.position.x = 0.15 * p; // 기존 탄창 제거 연출
+                } 
+                // 2단계: 포탈에서 새 탄창 등장
+                else if (progress > 0.25 && progress <= 0.7) {
+                    const p = (progress - 0.25) / 0.45;
+                    portalRingMesh.rotation.z += 0.2;
+                    magazineMesh.position.x = 0.25 * (1 - p);
+                    magazineMesh.position.y = -0.2 * (1 - p);
+                } 
+                // 3단계: 포탈 닫힘 및 탄창 체결
+                else if (progress > 0.7 && progress <= 1.0) {
+                    const p = (progress - 0.7) / 0.3;
+                    portalGroup.scale.set(1 - p, 1 - p, 1 - p);
+                    weaponGroup.rotation.z = -0.25 * (1 - p);
+                    magazineMesh.position.set(0, 0, 0);
                 } else {
                     clearInterval(reloadInterval);
-                    magazineMesh.position.set(0, 0, 0);
-                    magazineMesh.rotation.set(0, 0, 0);
+                    portalGroup.scale.set(0.001, 0.001, 0.001);
                     weaponGroup.rotation.z = 0;
+                    magazineMesh.position.set(0, 0, 0);
                     
                     ammo = maxAmmo;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
-                    document.getElementById('reloadMsg').innerText = "[R] 키를 눌러 재장전!";
+                    document.getElementById('reloadMsg').innerText = "[R] 키를 눌러 차원 재장전!";
                     updateUI();
                 }
-            }, 20);
+            }, 18);
         }
 
         function updateUI() {
@@ -831,17 +722,16 @@ game_code = """
 
         function triggerFlash() {
             if (!isGameStarted) return;
-            document.getElementById('warningText').innerText = "⚠️ FLASHBANG INCOMING! (고개를 빠르게 돌리세요!)";
+            document.getElementById('warningText').innerText = "⚠️ CYBER FLASH! (고개를 빠르게 피하세요!)";
 
             setTimeout(() => {
                 document.getElementById('warningText').innerText = "";
-                // 고개를 충분히 돌리지 않은 경우(정면을 보고 있을 때) 뱅 효과
                 if (Math.abs(yaw % (Math.PI * 2)) < 0.8 && isGameStarted) {
                     const flashOverlay = document.getElementById('flashOverlay');
                     flashOverlay.style.opacity = '1';
                     setTimeout(() => {
                         flashOverlay.style.opacity = '0';
-                    }, 1800);
+                    }, 1500);
                 }
             }, 1200);
         }
@@ -850,19 +740,38 @@ game_code = """
             requestAnimationFrame(animate);
 
             if (isGameStarted) {
-                // 카메라 회전 적용 (Euler 오더: YXZ)
+                // WASD 이동 조작
+                const moveVector = new THREE.Vector3(0, 0, 0);
+                if (keys.w) moveVector.z -= 1;
+                if (keys.s) moveVector.z += 1;
+                if (keys.a) moveVector.x -= 1;
+                if (keys.d) moveVector.x += 1;
+
+                if (moveVector.lengthSq() > 0) {
+                    moveVector.normalize();
+                    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    camera.position.addScaledVector(moveVector, moveSpeed);
+
+                    // 바운더리 제한
+                    camera.position.x = Math.max(-12, Math.min(12, camera.position.x));
+                    camera.position.z = Math.max(-8, Math.min(14, camera.position.z));
+
+                    // 걷기 흔들림 (Head Bobbing)
+                    walkTimer += 0.15;
+                    weaponGroup.position.y = -0.22 + Math.sin(walkTimer) * 0.012;
+                }
+
+                // 시선 회전
                 camera.rotation.order = 'YXZ';
                 camera.rotation.y = yaw;
                 camera.rotation.x = pitch;
 
-                // 총기 마우스 움직임 반사 (Weapon Sway)
+                // Gun Sway
                 weaponGroup.position.x = 0.22 - mouseDeltaX * 0.0003;
-                weaponGroup.position.y = -0.22 + mouseDeltaY * 0.0003;
-
                 mouseDeltaX *= 0.85;
                 mouseDeltaY *= 0.85;
 
-                // 반동 감쇄
+                // 반동 회복
                 if (recoilZ > 0) {
                     recoilZ -= 0.02;
                     if (recoilZ < 0) recoilZ = 0;
