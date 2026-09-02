@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="3D AimLab - F-Key Shoot & Mouse Look", layout="centered")
+st.set_page_config(page_title="3D AimLab - Smooth Mouse Look & Rotate Reload", layout="centered")
 
-st.title("⚡ 3D Cyberpunk AimLab (F키 사격 & 마우스 회전 완원복)")
-st.caption("게임 영역 클릭 후 마우스를 움직이면 화면과 총이 따라 돌아가며, F 키로 총알이 발사됩니다.")
+st.title("⚡ 3D Cyberpunk AimLab (탄창 회전 장전 & 마우스 자유 회전)")
+st.caption("마우스를 움직이면 화면과 총이 따라 돌아갑니다. (WASD: 이동 | F 또는 좌클릭: 사격 | R: 탄창 회전 장전)")
 
 game_code = """
 <!DOCTYPE html>
@@ -90,19 +90,6 @@ game_code = """
             color: #ff0055;
             display: none;
         }
-        #clickNotice {
-            position: absolute;
-            top: 45%;
-            width: 100%;
-            text-align: center;
-            color: #00f0ff;
-            font-size: 22px;
-            font-weight: bold;
-            z-index: 25;
-            text-shadow: 0 0 12px rgba(0, 240, 255, 0.9);
-            display: none;
-            pointer-events: none;
-        }
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -172,14 +159,13 @@ game_code = """
     </div>
     <div id="ammo-panel">
         AMMO: <span id="ammo">30</span> / <span id="maxAmmo">30</span>
-        <div id="reloadMsg">[R] 키를 눌러 차원 재장전!</div>
+        <div id="reloadMsg">[R] 키를 눌러 탄창 교체!</div>
     </div>
     <div id="crosshair"></div>
-    <div id="clickNotice">🖱️ 화면을 한번 클릭하여 마우스 조작을 활성화하세요!</div>
 
     <div id="startOverlay">
         <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">CYBERPUNK AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 회전 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 장전</p>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 탄창 회전 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -241,20 +227,20 @@ game_code = """
             noise.start(now);
         }
 
-        function playPortalReloadSound() {
+        function playReloadSound() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(250, now);
-            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.5);
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + 0.55);
+            osc.stop(now + 0.35);
         }
 
         let scene, camera, renderer;
@@ -269,11 +255,10 @@ game_code = """
         let targetRadius = 0.48;
 
         let weaponGroup, magazineMesh, muzzleFlashMesh;
-        let portalGroup, portalRingMesh;
         let recoilZ = 0, recoilRotX = 0;
 
-        let yaw = 0, pitch = 0;
-        const sensitivity = 0.0024;
+        let targetYaw = 0, targetPitch = 0;
+        let currentYaw = 0, currentPitch = 0;
 
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
@@ -300,12 +285,6 @@ game_code = """
             else if (diff === 'hard') targetRadius = 0.32;
         }
 
-        function requestPointerLock() {
-            if (renderer && renderer.domElement) {
-                renderer.domElement.requestPointerLock();
-            }
-        }
-
         function initGame() {
             initAudio();
             document.getElementById('startOverlay').style.display = 'none';
@@ -316,8 +295,10 @@ game_code = """
             hits = 0;
             ammo = maxAmmo;
             isReloading = false;
-            yaw = 0;
-            pitch = 0;
+            targetYaw = 0;
+            targetPitch = 0;
+            currentYaw = 0;
+            currentPitch = 0;
             updateUI();
             document.getElementById('reloadMsg').style.display = 'none';
 
@@ -356,19 +337,18 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 🎯 실시간 마우스 움직임 시선 회전 연동
-                document.addEventListener('mousemove', (e) => {
-                    if (isGameStarted && document.pointerLockElement === renderer.domElement) {
-                        const movementX = e.movementX || 0;
-                        const movementY = e.movementY || 0;
+                // 🎯 마우스 고정 없이 자유 위치 추적 회전
+                window.addEventListener('mousemove', (e) => {
+                    if (!isGameStarted) return;
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-                        yaw -= movementX * sensitivity;
-                        pitch -= movementY * sensitivity;
-                        pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
-                    }
+                    targetYaw = -mouseX * 1.2;
+                    targetPitch = mouseY * 0.7;
                 });
 
-                // ⌨️ 키보드 입력 처리 ([F] 키 사격 포함)
+                // ⌨️ 키보드 입력 처리
                 window.addEventListener('keydown', (e) => {
                     const k = e.key.toLowerCase();
                     if (k in keys) keys[k] = true;
@@ -376,7 +356,7 @@ game_code = """
                     if (isGameStarted) {
                         if (k === 'e') goToMainMenu();
                         if (k === 'r') reload();
-                        if (k === 'f') shoot(); // 🔥 F 키 누르면 사격
+                        if (k === 'f') shoot(); // 🔥 F 키 사격
                     }
                 });
 
@@ -385,22 +365,10 @@ game_code = """
                     if (k in keys) keys[k] = false;
                 });
 
-                // 🖱️ 클릭 사격 및 포인터 잠금 재요청
+                // 🖱️ 클릭 사격
                 window.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
-                        if (document.pointerLockElement !== renderer.domElement) {
-                            requestPointerLock();
-                        } else {
-                            shoot();
-                        }
-                    }
-                });
-
-                document.addEventListener('pointerlockchange', () => {
-                    if (document.pointerLockElement === renderer.domElement) {
-                        document.getElementById('clickNotice').style.display = 'none';
-                    } else if (isGameStarted) {
-                        document.getElementById('clickNotice').style.display = 'block';
+                        shoot();
                     }
                 });
 
@@ -408,11 +376,9 @@ game_code = """
             }
 
             camera.position.set(0, 1.6, 5);
-            requestPointerLock();
 
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
-            buildPortalModel();
 
             targets.forEach(t => scene.remove(t));
             targets = [];
@@ -425,31 +391,8 @@ game_code = """
 
         function goToMainMenu() {
             isGameStarted = false;
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
             document.getElementById('crosshair').style.display = 'none';
-            document.getElementById('clickNotice').style.display = 'none';
             document.getElementById('startOverlay').style.display = 'flex';
-        }
-
-        function buildPortalModel() {
-            portalGroup = new THREE.Group();
-            
-            const ringGeo = new THREE.TorusGeometry(0.18, 0.025, 16, 32);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xa800ff, wireframe: true });
-            portalRingMesh = new THREE.Mesh(ringGeo, ringMat);
-            portalGroup.add(portalRingMesh);
-
-            const coreGeo = new THREE.CircleGeometry(0.16, 32);
-            const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8 });
-            const core = new THREE.Mesh(coreGeo, coreMat);
-            portalGroup.add(core);
-
-            portalGroup.position.set(0.42, -0.05, -0.45);
-            portalGroup.scale.set(0.001, 0.001, 0.001);
-            
-            weaponGroup.add(portalGroup);
         }
 
         function buildWeaponModel(type) {
@@ -484,15 +427,16 @@ game_code = """
 
                 magazineMesh = new THREE.Group();
                 const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.085), magMat);
-                magTop.position.set(0, -0.13, -0.02);
+                magTop.position.set(0, 0, 0);
                 magTop.rotation.x = -0.32;
                 magazineMesh.add(magTop);
 
                 const magNeon = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.02, 0.088), neonCyanMat);
-                magNeon.position.set(0, -0.18, -0.04);
+                magNeon.position.set(0, -0.05, -0.02);
                 magNeon.rotation.x = -0.32;
                 magazineMesh.add(magNeon);
 
+                magazineMesh.position.set(0, -0.13, -0.02);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
@@ -516,6 +460,9 @@ game_code = """
                 weaponGroup.add(scopeGlow);
 
                 magazineMesh = new THREE.Group();
+                const dummyMag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.06), magMat);
+                magazineMesh.add(dummyMag);
+                magazineMesh.position.set(0, -0.08, -0.1);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
@@ -532,8 +479,8 @@ game_code = """
 
                 magazineMesh = new THREE.Group();
                 const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.19, 0.08), magMat);
-                mag.position.set(0, -0.13, 0.21);
                 magazineMesh.add(mag);
+                magazineMesh.position.set(0, -0.13, 0.21);
                 weaponGroup.add(magazineMesh);
             }
 
@@ -590,7 +537,6 @@ game_code = """
             targets.push(targetGroup);
         }
 
-        // 💥 총알 발사 연출
         function shoot() {
             if (isReloading || !isGameStarted) return;
 
@@ -631,36 +577,42 @@ game_code = """
             }
         }
 
+        // 🔄 탄창 이탈 -> 180도 회전 -> 재결합 모션
         function reload() {
             if (isReloading || ammo === maxAmmo || !isGameStarted) return;
             isReloading = true;
-            playPortalReloadSound();
+            playReloadSound();
 
+            const initY = magazineMesh.position.y;
             let progress = 0;
-            const reloadInterval = setInterval(() => {
-                progress += 0.03;
 
-                if (progress <= 0.3) {
-                    const p = progress / 0.3;
-                    portalGroup.scale.set(p, p, p);
-                    portalRingMesh.rotation.z = p * Math.PI * 2;
-                    magazineMesh.position.x = 0.15 * p;
+            const reloadInterval = setInterval(() => {
+                progress += 0.04;
+
+                if (progress <= 0.4) {
+                    // 탄창 하단 탈착
+                    const p = progress / 0.4;
+                    magazineMesh.position.y = initY - p * 0.25;
+                    magazineMesh.rotation.y = 0;
                 } else if (progress <= 0.7) {
-                    portalRingMesh.rotation.z += 0.2;
+                    // 탄창 Y축 180도 회전
+                    const p = (progress - 0.4) / 0.3;
+                    magazineMesh.rotation.y = p * Math.PI;
                 } else if (progress <= 1.0) {
+                    // 탄창 상단 재삽입 및 회전 완료
                     const p = (progress - 0.7) / 0.3;
-                    portalGroup.scale.set(1 - p, 1 - p, 1 - p);
-                    magazineMesh.position.set(0, 0, 0);
+                    magazineMesh.position.y = (initY - 0.25) + p * 0.25;
+                    magazineMesh.rotation.y = Math.PI * (1 + p);
                 } else {
                     clearInterval(reloadInterval);
-                    portalGroup.scale.set(0.001, 0.001, 0.001);
-                    magazineMesh.position.set(0, 0, 0);
+                    magazineMesh.position.y = initY;
+                    magazineMesh.rotation.y = 0;
                     ammo = maxAmmo;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
                     updateUI();
                 }
-            }, 18);
+            }, 20);
         }
 
         function updateUI() {
@@ -683,17 +635,20 @@ game_code = """
 
                 if (moveVector.lengthSq() > 0) {
                     moveVector.normalize();
-                    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), currentYaw);
                     camera.position.addScaledVector(moveVector, moveSpeed);
 
                     camera.position.x = Math.max(-12, Math.min(12, camera.position.x));
                     camera.position.z = Math.max(-8, Math.min(14, camera.position.z));
                 }
 
-                // 시선 및 총기 회전 동기화
+                // 부드러운 마우스 시선 보정
+                currentYaw += (targetYaw - currentYaw) * 0.15;
+                currentPitch += (targetPitch - currentPitch) * 0.15;
+
                 camera.rotation.order = 'YXZ';
-                camera.rotation.y = yaw;
-                camera.rotation.x = pitch;
+                camera.rotation.y = currentYaw;
+                camera.rotation.x = currentPitch;
 
                 if (recoilZ > 0) recoilZ -= 0.02;
                 if (recoilRotX > 0) recoilRotX -= 0.015;
