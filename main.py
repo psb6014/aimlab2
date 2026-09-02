@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Fixed Edition", layout="centered")
+st.set_page_config(page_title="3D AimLab - F-Key Shoot & Mouse Look", layout="centered")
 
-st.title("⚡ 3D Cyberpunk AimLab (Performance Fixed)")
-st.caption("화면 클릭 시 시선이 회전하며, 마우스 클릭 시 총알이 발사됩니다. (R: 포탈 장전 | E: 메인)")
+st.title("⚡ 3D Cyberpunk AimLab (F키 사격 & 마우스 회전 완원복)")
+st.caption("게임 영역 클릭 후 마우스를 움직이면 화면과 총이 따라 돌아가며, F 키로 총알이 발사됩니다.")
 
 game_code = """
 <!DOCTYPE html>
@@ -14,7 +14,7 @@ game_code = """
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #0b0d17;
+            background-color: #0e111a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
         }
@@ -90,6 +90,19 @@ game_code = """
             color: #ff0055;
             display: none;
         }
+        #clickNotice {
+            position: absolute;
+            top: 45%;
+            width: 100%;
+            text-align: center;
+            color: #00f0ff;
+            font-size: 22px;
+            font-weight: bold;
+            z-index: 25;
+            text-shadow: 0 0 12px rgba(0, 240, 255, 0.9);
+            display: none;
+            pointer-events: none;
+        }
         #startOverlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -162,10 +175,11 @@ game_code = """
         <div id="reloadMsg">[R] 키를 눌러 차원 재장전!</div>
     </div>
     <div id="crosshair"></div>
+    <div id="clickNotice">🖱️ 화면을 한번 클릭하여 마우스 조작을 활성화하세요!</div>
 
     <div id="startOverlay">
         <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">CYBERPUNK AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">화면 클릭: 마우스 조작 시작 | 좌클릭: 사격 | R: 포탈 장전</p>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 회전 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -259,7 +273,7 @@ game_code = """
         let recoilZ = 0, recoilRotX = 0;
 
         let yaw = 0, pitch = 0;
-        const sensitivity = 0.0022;
+        const sensitivity = 0.0024;
 
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
@@ -286,6 +300,12 @@ game_code = """
             else if (diff === 'hard') targetRadius = 0.32;
         }
 
+        function requestPointerLock() {
+            if (renderer && renderer.domElement) {
+                renderer.domElement.requestPointerLock();
+            }
+        }
+
         function initGame() {
             initAudio();
             document.getElementById('startOverlay').style.display = 'none';
@@ -304,7 +324,7 @@ game_code = """
             if (!scene) {
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0x0e111a);
-                scene.fog = new THREE.FogExp2(0x0e111a, 0.015);
+                scene.fog = new THREE.FogExp2(0x0e111a, 0.012);
 
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
                 camera.position.set(0, 1.6, 5);
@@ -313,11 +333,11 @@ game_code = """
                 renderer.setSize(window.innerWidth, 500);
                 document.body.appendChild(renderer.domElement);
 
-                // 💡 최적의 맵 조명
-                const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+                // 💡 사이버 스페이스 조명
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
                 scene.add(ambientLight);
 
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
                 dirLight.position.set(10, 20, 10);
                 scene.add(dirLight);
 
@@ -325,7 +345,7 @@ game_code = """
                 cyanLight.position.set(0, 6, 0);
                 scene.add(cyanLight);
 
-                // 바닥 및 벽면
+                // 바닥 및 그리드
                 const floorGeo = new THREE.PlaneGeometry(80, 80);
                 const floorMat = new THREE.MeshStandardMaterial({ color: 0x141824, roughness: 0.2 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -336,21 +356,27 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 마우스 시선 회전
+                // 🎯 실시간 마우스 움직임 시선 회전 연동
                 document.addEventListener('mousemove', (e) => {
-                    if (document.pointerLockElement === renderer.domElement && isGameStarted) {
-                        yaw -= (e.movementX || 0) * sensitivity;
-                        pitch -= (e.movementY || 0) * sensitivity;
+                    if (isGameStarted && document.pointerLockElement === renderer.domElement) {
+                        const movementX = e.movementX || 0;
+                        const movementY = e.movementY || 0;
+
+                        yaw -= movementX * sensitivity;
+                        pitch -= movementY * sensitivity;
                         pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
                     }
                 });
 
+                // ⌨️ 키보드 입력 처리 ([F] 키 사격 포함)
                 window.addEventListener('keydown', (e) => {
                     const k = e.key.toLowerCase();
                     if (k in keys) keys[k] = true;
+
                     if (isGameStarted) {
                         if (k === 'e') goToMainMenu();
                         if (k === 'r') reload();
+                        if (k === 'f') shoot(); // 🔥 F 키 누르면 사격
                     }
                 });
 
@@ -359,13 +385,22 @@ game_code = """
                     if (k in keys) keys[k] = false;
                 });
 
+                // 🖱️ 클릭 사격 및 포인터 잠금 재요청
                 window.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
                         if (document.pointerLockElement !== renderer.domElement) {
-                            renderer.domElement.requestPointerLock();
+                            requestPointerLock();
                         } else {
                             shoot();
                         }
+                    }
+                });
+
+                document.addEventListener('pointerlockchange', () => {
+                    if (document.pointerLockElement === renderer.domElement) {
+                        document.getElementById('clickNotice').style.display = 'none';
+                    } else if (isGameStarted) {
+                        document.getElementById('clickNotice').style.display = 'block';
                     }
                 });
 
@@ -373,7 +408,7 @@ game_code = """
             }
 
             camera.position.set(0, 1.6, 5);
-            try { renderer.domElement.requestPointerLock(); } catch(e){}
+            requestPointerLock();
 
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
@@ -394,6 +429,7 @@ game_code = """
                 document.exitPointerLock();
             }
             document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('clickNotice').style.display = 'none';
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
@@ -416,7 +452,6 @@ game_code = """
             weaponGroup.add(portalGroup);
         }
 
-        // 🔫 디테일 총기 3종 복원
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
@@ -555,7 +590,7 @@ game_code = """
             targets.push(targetGroup);
         }
 
-        // 💥 클릭 시 총알 발사 처리
+        // 💥 총알 발사 연출
         function shoot() {
             if (isReloading || !isGameStarted) return;
 
@@ -576,7 +611,6 @@ game_code = """
             muzzleFlashMesh.material.opacity = 1.0;
             setTimeout(() => { muzzleFlashMesh.material.opacity = 0; }, 35);
 
-            // 총알 수평 레이저 가시화 연출
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
@@ -656,6 +690,7 @@ game_code = """
                     camera.position.z = Math.max(-8, Math.min(14, camera.position.z));
                 }
 
+                // 시선 및 총기 회전 동기화
                 camera.rotation.order = 'YXZ';
                 camera.rotation.y = yaw;
                 camera.rotation.x = pitch;
