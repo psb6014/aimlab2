@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Streamlit 3D AimLab - Bright Cyber Edition", layout="centered")
+st.set_page_config(page_title="Streamlit 3D AimLab - Fixed Edition", layout="centered")
 
-st.title("⚡ 3D Cyberpunk AimLab (Bright Portal Edition)")
-st.caption("마우스 이동 시 화면이 회전하며, R 키 입력 시 포탈 장전 애니메이션이 실행됩니다.")
+st.title("⚡ 3D Cyberpunk AimLab (Bright & Fixed)")
+st.caption("화면을 클릭하여 마우스 조작을 시작하세요. (WASD: 이동 | 마우스: 회전 | 클릭: 사격 | R: 장전 | ESC/E: 메인)")
 
 game_code = """
 <!DOCTYPE html>
@@ -182,8 +182,8 @@ game_code = """
     <div id="flashOverlay"></div>
 
     <div id="startOverlay">
-        <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 34px;">BRIGHT CYBER AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">WASD: 이동 | 마우스 이동: 시선 회전 | 클릭: 사격 | R: 포탈 장전 | E: 메인 메뉴</p>
+        <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">3D CYBER AIMLAB</h1>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">WASD: 이동 | 마우스 이동: 시선 회전 | 클릭: 사격 | R: 포탈 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -206,18 +206,20 @@ game_code = """
         let audioCtx = null;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch(e) {}
         }
 
         function playGunSound(type) {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
-            const bufferSize = audioCtx.sampleRate * 0.35;
+            const bufferSize = audioCtx.sampleRate * 0.3;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = buffer.getChannelData(0);
 
@@ -231,25 +233,11 @@ game_code = """
             const filter = audioCtx.createBiquadFilter();
             const gain = audioCtx.createGain();
 
-            if (type === 'ak47') {
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(1100, now);
-                filter.frequency.exponentialRampToValueAtTime(150, now + 0.28);
-                gain.gain.setValueAtTime(1.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
-            } else if (type === 'kar98k') {
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(3800, now);
-                filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
-                gain.gain.setValueAtTime(1.8, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-            } else if (type === 'famas') {
-                filter.type = 'highpass';
-                filter.frequency.setValueAtTime(1600, now);
-                filter.frequency.exponentialRampToValueAtTime(300, now + 0.18);
-                gain.gain.setValueAtTime(1.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-            }
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1200, now);
+            filter.frequency.exponentialRampToValueAtTime(100, now + 0.25);
+            gain.gain.setValueAtTime(1.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
 
             noise.connect(filter);
             filter.connect(gain);
@@ -260,32 +248,28 @@ game_code = """
         function playPortalReloadSound() {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
-            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(200, now);
-            osc.frequency.exponentialRampToValueAtTime(1400, now + 0.6);
+            osc.frequency.exponentialRampToValueAtTime(1200, now + 0.5);
             gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
-            
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + 0.7);
+            osc.stop(now + 0.6);
         }
 
         let scene, camera, renderer;
         let targets = [];
         let score = 0, totalShots = 0, hits = 0;
-        
         let selectedWeapon = 'ak47';
         let maxAmmo = 30;
         let ammo = 30;
 
         let isReloading = false;
         let isGameStarted = false;
-        let flashInterval = null;
 
         let targetRadius = 0.48;
 
@@ -293,15 +277,12 @@ game_code = """
         let portalGroup, portalRingMesh;
         let recoilZ = 0, recoilRotX = 0;
 
-        // 마우스 & 카메라 회전 변수
         let yaw = 0, pitch = 0;
         let mouseDeltaX = 0, mouseDeltaY = 0;
         const sensitivity = 0.0022;
 
-        // WASD 이동 키 상태
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
-        let walkTimer = 0;
 
         function selectWeapon(weapon, btn) {
             selectedWeapon = weapon;
@@ -325,12 +306,6 @@ game_code = """
             else if (diff === 'hard') targetRadius = 0.32;
         }
 
-        function requestLock() {
-            if (renderer && renderer.domElement) {
-                renderer.domElement.requestPointerLock();
-            }
-        }
-
         function initGame() {
             initAudio();
             document.getElementById('startOverlay').style.display = 'none';
@@ -348,37 +323,27 @@ game_code = """
 
             if (!scene) {
                 scene = new THREE.Scene();
-                // 맵 밝기 상향: 훨씬 밝은 배경색 지정
-                scene.background = new THREE.Color(0x181e30);
-                scene.fog = new THREE.FogExp2(0x181e30, 0.008);
+                scene.background = new THREE.Color(0x1a2136);
+                scene.fog = new THREE.FogExp2(0x1a2136, 0.005);
 
                 camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
                 camera.position.set(0, 1.6, 5);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, 500);
-                renderer.shadowMap.enabled = true;
                 document.body.appendChild(renderer.domElement);
 
-                // 💡 전체 밝기 조명 강화
-                const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
+                // 💡 맵 전체 조명
+                const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
                 scene.add(ambientLight);
 
                 const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
                 dirLight.position.set(10, 20, 10);
                 scene.add(dirLight);
 
-                const cyanLight = new THREE.PointLight(0x00f0ff, 3.5, 35);
-                cyanLight.position.set(0, 8, 0);
-                scene.add(cyanLight);
-
-                const magentaLight = new THREE.PointLight(0xff0055, 3.0, 35);
-                magentaLight.position.set(0, 5, -12);
-                scene.add(magentaLight);
-
-                // 밝은 사이버 그리드 바닥
+                // 밝은 사이버 바닥
                 const floorGeo = new THREE.PlaneGeometry(80, 80);
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x1e263d, roughness: 0.1, metalness: 0.5 });
+                const floorMat = new THREE.MeshStandardMaterial({ color: 0x222c45, roughness: 0.1 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
                 scene.add(floor);
@@ -387,19 +352,7 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 밝은 정면 네온 벽면
-                const wallGeo = new THREE.PlaneGeometry(80, 35);
-                const wallMat = new THREE.MeshStandardMaterial({ color: 0x212a42, roughness: 0.3 });
-                const backWall = new THREE.Mesh(wallGeo, wallMat);
-                backWall.position.set(0, 17.5, -25);
-                scene.add(backWall);
-
-                const wallGrid = new THREE.GridHelper(80, 30, 0xff0055, 0x4a3258);
-                wallGrid.rotation.x = Math.PI / 2;
-                wallGrid.position.set(0, 17.5, -24.9);
-                scene.add(wallGrid);
-
-                // 마우스 회전 제어
+                // 마우스 시선 회전 이벤트
                 document.addEventListener('mousemove', (e) => {
                     if (document.pointerLockElement === renderer.domElement && isGameStarted) {
                         mouseDeltaX = e.movementX || 0;
@@ -429,16 +382,10 @@ game_code = """
                 window.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
                         if (document.pointerLockElement !== renderer.domElement) {
-                            requestLock();
+                            renderer.domElement.requestPointerLock();
                         } else {
                             shoot();
                         }
-                    }
-                });
-
-                document.addEventListener('pointerlockchange', () => {
-                    if (document.pointerLockElement !== renderer.domElement && isGameStarted) {
-                        goToMainMenu();
                     }
                 });
 
@@ -446,7 +393,7 @@ game_code = """
             }
 
             camera.position.set(0, 1.6, 5);
-            requestLock();
+            try { renderer.domElement.requestPointerLock(); } catch(e){}
 
             if (weaponGroup) camera.remove(weaponGroup);
             buildWeaponModel(selectedWeapon);
@@ -458,9 +405,6 @@ game_code = """
                 createTarget();
             }
 
-            if (flashInterval) clearInterval(flashInterval);
-            flashInterval = setInterval(triggerFlash, 10000);
-
             isGameStarted = true;
         }
 
@@ -469,13 +413,10 @@ game_code = """
             if (document.pointerLockElement) {
                 document.exitPointerLock();
             }
-            if (flashInterval) clearInterval(flashInterval);
-            document.getElementById('warningText').innerText = "";
             document.getElementById('crosshair').style.display = 'none';
             document.getElementById('startOverlay').style.display = 'flex';
         }
 
-        // 🌀 차원 포탈 메시 생성
         function buildPortalModel() {
             portalGroup = new THREE.Group();
             
@@ -485,7 +426,7 @@ game_code = """
             portalGroup.add(portalRingMesh);
 
             const coreGeo = new THREE.CircleGeometry(0.16, 32);
-            const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8 });
             const core = new THREE.Mesh(coreGeo, coreMat);
             portalGroup.add(core);
 
@@ -498,77 +439,23 @@ game_code = """
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b3248, roughness: 0.2, metalness: 0.8 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2b3248, roughness: 0.2 });
             const neonCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-            const neonMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-            const magMat = new THREE.MeshStandardMaterial({ color: 0x3d4766, roughness: 0.3, metalness: 0.7 });
+            const magMat = new THREE.MeshStandardMaterial({ color: 0x3d4766 });
 
-            if (type === 'ak47') {
-                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), bodyMat);
-                weaponGroup.add(mainBody);
+            const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.09, 0.44), bodyMat);
+            weaponGroup.add(mainBody);
 
-                const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.02, 0.3), neonCyanMat);
-                stripe1.position.set(0, 0.02, -0.05);
-                weaponGroup.add(stripe1);
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), bodyMat);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.01, -0.58);
+            weaponGroup.add(barrel);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.75, 12), bodyMat);
-                barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.01, -0.58);
-                weaponGroup.add(barrel);
-
-                const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.06, 0.03), neonMagentaMat);
-                frontSight.position.set(0, 0.06, -0.88);
-                weaponGroup.add(frontSight);
-
-                magazineMesh = new THREE.Group();
-                const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.085), magMat);
-                magTop.position.set(0, -0.13, -0.02);
-                magTop.rotation.x = -0.3;
-                
-                const magNeon = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.02, 0.088), neonCyanMat);
-                magNeon.position.set(0, -0.18, -0.04);
-                magNeon.rotation.x = -0.3;
-
-                magazineMesh.add(magTop);
-                magazineMesh.add(magNeon);
-                weaponGroup.add(magazineMesh);
-
-            } else if (type === 'kar98k') {
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.08, 0.95), bodyMat);
-                stock.position.set(0, -0.03, -0.1);
-                weaponGroup.add(stock);
-
-                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 16), bodyMat);
-                scopeBody.rotation.x = Math.PI / 2;
-                scopeBody.position.set(0, 0.085, -0.1);
-                weaponGroup.add(scopeBody);
-
-                const scopeGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 16), neonCyanMat);
-                scopeGlow.rotation.x = Math.PI / 2;
-                scopeGlow.position.set(0, 0.085, -0.29);
-                weaponGroup.add(scopeGlow);
-
-                magazineMesh = new THREE.Group();
-                weaponGroup.add(magazineMesh);
-
-            } else if (type === 'famas') {
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.13, 0.65), bodyMat);
-                weaponGroup.add(body);
-
-                const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.52), bodyMat);
-                handleTop.position.set(0, 0.13, -0.05);
-                weaponGroup.add(handleTop);
-
-                const neonLine = new THREE.Mesh(new THREE.BoxGeometry(0.072, 0.015, 0.48), neonMagentaMat);
-                neonLine.position.set(0, 0.02, -0.05);
-                weaponGroup.add(neonLine);
-
-                magazineMesh = new THREE.Group();
-                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.19, 0.08), magMat);
-                mag.position.set(0, -0.13, 0.21);
-                magazineMesh.add(mag);
-                weaponGroup.add(magazineMesh);
-            }
+            magazineMesh = new THREE.Group();
+            const magTop = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.18, 0.085), magMat);
+            magTop.position.set(0, -0.13, -0.02);
+            magazineMesh.add(magTop);
+            weaponGroup.add(magazineMesh);
 
             const flashGeo = new THREE.OctahedronGeometry(0.12, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0 });
@@ -583,33 +470,8 @@ game_code = """
 
         function createTarget() {
             const targetGroup = new THREE.Group();
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#1c2338';
-            ctx.fillRect(0,0,256,256);
-
-            const colors = ['#ff0055', '#00f0ff', '#ffffff', '#ff0055'];
-            const radii = [120, 90, 60, 30];
-
-            radii.forEach((r, idx) => {
-                ctx.beginPath();
-                ctx.arc(128, 128, r, 0, Math.PI * 2);
-                ctx.fillStyle = colors[idx];
-                ctx.fill();
-            });
-
-            const texture = new THREE.CanvasTexture(canvas);
-            
             const discGeo = new THREE.CylinderGeometry(targetRadius, targetRadius, 0.06, 32);
-            const discMat = [
-                new THREE.MeshStandardMaterial({ color: 0x2b3552 }),
-                new THREE.MeshStandardMaterial({ map: texture, roughness: 0.1 }),
-                new THREE.MeshStandardMaterial({ color: 0x181e30 })
-            ];
+            const discMat = new THREE.MeshStandardMaterial({ color: 0xff0055 });
 
             const disc = new THREE.Mesh(discGeo, discMat);
             disc.rotation.x = Math.PI / 2;
@@ -637,13 +499,11 @@ game_code = """
             totalShots++;
             updateUI();
 
-            recoilZ = 0.18;
-            recoilRotX = 0.16;
+            recoilZ = 0.15;
+            recoilRotX = 0.12;
 
             muzzleFlashMesh.material.opacity = 1.0;
-            setTimeout(() => {
-                muzzleFlashMesh.material.opacity = 0;
-            }, 35);
+            setTimeout(() => { muzzleFlashMesh.material.opacity = 0; }, 35);
 
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
@@ -663,6 +523,86 @@ game_code = """
                     break;
                 }
             }
+        }
 
-            if (ammo === 0) {
-                document.getElementById('
+        function reload() {
+            if (isReloading || ammo === maxAmmo || !isGameStarted) return;
+            isReloading = true;
+            playPortalReloadSound();
+
+            let progress = 0;
+            const reloadInterval = setInterval(() => {
+                progress += 0.03;
+
+                if (progress <= 0.3) {
+                    const p = progress / 0.3;
+                    portalGroup.scale.set(p, p, p);
+                    portalRingMesh.rotation.z = p * Math.PI * 2;
+                    magazineMesh.position.x = 0.15 * p;
+                } else if (progress <= 0.7) {
+                    portalRingMesh.rotation.z += 0.2;
+                } else if (progress <= 1.0) {
+                    const p = (progress - 0.7) / 0.3;
+                    portalGroup.scale.set(1 - p, 1 - p, 1 - p);
+                    magazineMesh.position.set(0, 0, 0);
+                } else {
+                    clearInterval(reloadInterval);
+                    portalGroup.scale.set(0.001, 0.001, 0.001);
+                    magazineMesh.position.set(0, 0, 0);
+                    ammo = maxAmmo;
+                    isReloading = false;
+                    document.getElementById('reloadMsg').style.display = 'none';
+                    updateUI();
+                }
+            }, 18);
+        }
+
+        function updateUI() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('ammo').innerText = ammo;
+            document.getElementById('maxAmmo').innerText = maxAmmo;
+            const acc = totalShots > 0 ? ((hits / totalShots) * 100).toFixed(1) : 100;
+            document.getElementById('accuracy').innerText = acc;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isGameStarted) {
+                const moveVector = new THREE.Vector3(0, 0, 0);
+                if (keys.w) moveVector.z -= 1;
+                if (keys.s) moveVector.z += 1;
+                if (keys.a) moveVector.x -= 1;
+                if (keys.d) moveVector.x += 1;
+
+                if (moveVector.lengthSq() > 0) {
+                    moveVector.normalize();
+                    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    camera.position.addScaledVector(moveVector, moveSpeed);
+
+                    camera.position.x = Math.max(-12, Math.min(12, camera.position.x));
+                    camera.position.z = Math.max(-8, Math.min(14, camera.position.z));
+                }
+
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+
+                if (recoilZ > 0) recoilZ -= 0.02;
+                if (recoilRotX > 0) recoilRotX -= 0.015;
+
+                weaponGroup.position.z = -0.52 + Math.max(0, recoilZ);
+                weaponGroup.rotation.x = Math.max(0, recoilRotX);
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+    </script>
+</body>
+</html>
+"""
+
+# Streamlit 환경 권한 및 마우스 잠금 허용
+components.html(game_code, height=540)
