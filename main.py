@@ -3,8 +3,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="3D AimLab - Realistic Guns & Targets", layout="centered")
 
-st.title("⚡ 3D AimLab (리얼 총기 & 이동 사람 타겟 & 원형 과녁)")
-st.caption("마우스 커서를 따라다니는 십자선과 지속적으로 재생성되는 원형 과녁이 적용되었습니다.")
+st.title("⚡ 3D AimLab (초고화질 총기 디테일 적용)")
 
 game_code = """
 <!DOCTYPE html>
@@ -196,7 +195,7 @@ game_code = """
             if (!audioCtx) return;
             try {
                 const now = audioCtx.currentTime;
-                const bufferSize = audioCtx.sampleRate * 0.2;
+                const bufferSize = audioCtx.sampleRate * 0.25;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const output = buffer.getChannelData(0);
 
@@ -211,10 +210,10 @@ game_code = """
                 const gain = audioCtx.createGain();
 
                 filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(type === 'kar98k' ? 600 : (type === 'ak47' ? 1000 : 1300), now);
-                filter.frequency.exponentialRampToValueAtTime(80, now + 0.2);
-                gain.gain.setValueAtTime(1.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                filter.frequency.setValueAtTime(type === 'kar98k' ? 550 : (type === 'ak47' ? 950 : 1200), now);
+                filter.frequency.exponentialRampToValueAtTime(70, now + 0.22);
+                gain.gain.setValueAtTime(1.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
 
                 noise.connect(filter);
                 filter.connect(gain);
@@ -304,10 +303,10 @@ game_code = """
                 renderer.setSize(window.innerWidth, 500);
                 document.body.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
                 scene.add(ambientLight);
 
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
                 dirLight.position.set(10, 20, 10);
                 scene.add(dirLight);
 
@@ -321,7 +320,6 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 마우스 추적 및 조준 이벤트
                 window.addEventListener('mousemove', (e) => {
                     if (!isGameStarted) return;
                     const rect = renderer.domElement.getBoundingClientRect();
@@ -372,12 +370,10 @@ game_code = """
             targets.forEach(t => scene.remove(t.group));
             targets = [];
             
-            // 사람 타겟 4명 생성
             for (let i = 0; i < 4; i++) {
                 createHumanTarget();
             }
 
-            // 원형 과녁 타겟 4개 생성
             for (let i = 0; i < 4; i++) {
                 createDiscTarget();
             }
@@ -394,88 +390,133 @@ game_code = """
         function buildWeaponModel(type) {
             weaponGroup = new THREE.Group();
 
-            const steelMat = new THREE.MeshStandardMaterial({ color: 0x22262e, roughness: 0.3, metalness: 0.9 });
-            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x111317, roughness: 0.4, metalness: 0.95 });
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x6e3319, roughness: 0.5, metalness: 0.05 });
-            const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x421e0f, roughness: 0.6, metalness: 0.05 });
-            const famasMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.6, metalness: 0.2 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x2a2e36, roughness: 0.25, metalness: 0.85 });
+            const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x16181d, roughness: 0.35, metalness: 0.9 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x73371b, roughness: 0.5, metalness: 0.05 });
+            const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x482110, roughness: 0.6, metalness: 0.05 });
+            const polymerMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.5, metalness: 0.1 });
 
             if (type === 'ak47') {
-                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.42), steelMat);
+                // 리얼 AK-47 디테일 구축
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.42), metalMat);
                 weaponGroup.add(receiver);
 
-                const topCover = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 12, 1, false, 0, Math.PI), steelMat);
+                const topCover = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.4, 16, 1, false, 0, Math.PI), metalMat);
                 topCover.rotation.x = Math.PI / 2;
                 topCover.rotation.z = Math.PI;
-                topCover.position.set(0, 0.04, -0.01);
+                topCover.position.set(0, 0.042, -0.01);
                 weaponGroup.add(topCover);
 
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.11, 0.35), woodMat);
-                stock.position.set(0, -0.02, 0.35);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.11, 0.38), woodMat);
+                stock.position.set(0, -0.02, 0.38);
                 stock.rotation.x = -0.15;
                 weaponGroup.add(stock);
 
-                const handguardLower = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.06, 0.28), woodMat);
+                const handguardLower = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.065, 0.28), woodMat);
                 handguardLower.position.set(0, -0.01, -0.32);
                 weaponGroup.add(handguardLower);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.65, 12), steelMat);
+                const handguardUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.25, 12), woodMat);
+                handguardUpper.rotation.x = Math.PI / 2;
+                handguardUpper.position.set(0, 0.038, -0.32);
+                weaponGroup.add(handguardUpper);
+
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.13, 0.055), woodMat);
+                grip.position.set(0, -0.11, 0.12);
+                grip.rotation.x = -0.38;
+                weaponGroup.add(grip);
+
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.68, 16), metalMat);
                 barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.015, -0.62);
+                barrel.position.set(0, 0.015, -0.65);
                 weaponGroup.add(barrel);
 
+                const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.36, 12), darkMetalMat);
+                gasTube.rotation.x = Math.PI / 2;
+                gasTube.position.set(0, 0.046, -0.46);
+                weaponGroup.add(gasTube);
+
+                const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.065, 0.035), metalMat);
+                frontSight.position.set(0, 0.058, -0.92);
+                weaponGroup.add(frontSight);
+
                 magazineMesh = new THREE.Group();
-                const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.12, 0.07), darkSteelMat);
+                const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.13, 0.075), darkMetalMat);
                 m1.rotation.x = -0.35;
+                const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.13, 0.07), darkMetalMat);
+                m2.position.set(0, -0.1, -0.04);
+                m2.rotation.x = -0.65;
                 magazineMesh.add(m1);
-                magazineMesh.position.set(0, -0.1, -0.05);
+                magazineMesh.add(m2);
+                magazineMesh.position.set(0, -0.11, -0.05);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.068, 1.25), darkWoodMat);
+                // 리얼 KAR98K 저격총 디테일 구축
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 1.28), darkWoodMat);
                 stock.position.set(0, -0.02, -0.2);
                 weaponGroup.add(stock);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.011, 1.1, 12), steelMat);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.011, 1.15, 16), metalMat);
                 barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.022, -0.72);
+                barrel.position.set(0, 0.022, -0.75);
                 weaponGroup.add(barrel);
 
-                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.42, 16), darkSteelMat);
+                const boltReceiver = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.28, 16), metalMat);
+                boltReceiver.rotation.x = Math.PI / 2;
+                boltReceiver.position.set(0, 0.025, 0.05);
+                weaponGroup.add(boltReceiver);
+
+                const boltHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.09, 8), darkMetalMat);
+                boltHandle.rotation.z = Math.PI / 3;
+                boltHandle.position.set(0.045, 0.02, 0.08);
+                weaponGroup.add(boltHandle);
+
+                const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.045, 0.16), darkMetalMat);
+                scopeMount.position.set(0, 0.068, -0.12);
+                weaponGroup.add(scopeMount);
+
+                const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.44, 20), darkMetalMat);
                 scopeBody.rotation.x = Math.PI / 2;
-                scopeBody.position.set(0, 0.09, -0.12);
+                scopeBody.position.set(0, 0.095, -0.12);
                 weaponGroup.add(scopeBody);
 
                 magazineMesh = new THREE.Group();
-                const dummy = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.04, 0.08), steelMat);
+                const dummy = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.045, 0.085), metalMat);
                 magazineMesh.add(dummy);
                 magazineMesh.position.set(0, -0.04, -0.08);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.68), famasMat);
+                // 리얼 FAMAS 불펍 소총 디테일 구축
+                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.13, 0.7), polymerMat);
                 weaponGroup.add(mainBody);
 
-                const carryHandle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.52), famasMat);
-                carryHandle.position.set(0, 0.1, -0.02);
+                const carryHandle = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.11, 0.54), polymerMat);
+                carryHandle.position.set(0, 0.11, -0.02);
                 weaponGroup.add(carryHandle);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.45, 12), steelMat);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.48, 16), metalMat);
                 barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.01, -0.52);
+                barrel.position.set(0, 0.01, -0.54);
                 weaponGroup.add(barrel);
 
+                const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.09, 12), darkMetalMat);
+                flashHider.rotation.x = Math.PI / 2;
+                flashHider.position.set(0, 0.01, -0.75);
+                weaponGroup.add(flashHider);
+
                 magazineMesh = new THREE.Group();
-                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.16, 0.07), darkSteelMat);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.17, 0.075), darkMetalMat);
                 magazineMesh.add(mag);
-                magazineMesh.position.set(0, -0.12, 0.22);
+                magazineMesh.position.set(0, -0.13, 0.22);
                 weaponGroup.add(magazineMesh);
             }
 
-            const flashGeo = new THREE.OctahedronGeometry(0.1, 0);
+            const flashGeo = new THREE.OctahedronGeometry(0.12, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
-            muzzleFlashMesh.position.set(0, 0.01, -0.9);
+            muzzleFlashMesh.position.set(0, 0.01, -0.95);
             weaponGroup.add(muzzleFlashMesh);
 
             weaponGroup.position.set(0.22, -0.22, -0.52);
@@ -483,7 +524,6 @@ game_code = """
             scene.add(camera);
         }
 
-        // 원형 과녁 타겟 생성 함수
         function createDiscTarget() {
             const discGroup = new THREE.Group();
 
@@ -533,27 +573,23 @@ game_code = """
             targets.push(targetObj);
         }
 
-        // 사람 마네킹 생성 함수
         function createHumanTarget() {
             const humanGroup = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0x3a4b6e, roughness: 0.5 });
             const headMat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 });
 
-            // 머리
             const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
             const headMesh = new THREE.Mesh(headGeo, headMat);
             headMesh.position.y = 1.6;
             headMesh.userData = { type: 'head' };
             humanGroup.add(headMesh);
 
-            // 몸통
             const bodyGeo = new THREE.BoxGeometry(0.48, 0.72, 0.26);
             const bodyMesh = new THREE.Mesh(bodyGeo, skinMat);
             bodyMesh.position.y = 1.0;
             bodyMesh.userData = { type: 'body' };
             humanGroup.add(bodyMesh);
 
-            // 팔 & 다리
             const armGeo = new THREE.BoxGeometry(0.14, 0.6, 0.14);
             const leftArm = new THREE.Mesh(armGeo, skinMat);
             leftArm.position.set(-0.35, 1.0, 0);
