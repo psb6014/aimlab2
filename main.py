@@ -3,8 +3,8 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="3D AimLab - Realistic Guns & Moving Human Targets", layout="centered")
 
-st.title("⚡ 3D AimLab (리얼 총기 & 이동 사람 타겟)")
-st.caption("현실적인 총기 모델링과 좌우로 움직이는 사람 타겟이 적용되었습니다. (헤드샷 1발 / 몸통 4발)")
+st.title("⚡ 3D AimLab (리얼 총기 & 이동 사람 타겟 & 원형 과녁)")
+st.caption("현실적인 총기 모델링, 움직이는 사람 타겟, 원형 과녁 및 마우스 커서 추적 십자선이 적용되었습니다.")
 
 game_code = """
 <!DOCTYPE html>
@@ -17,6 +17,7 @@ game_code = """
             background-color: #0e111a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
+            cursor: none; /* 게임 내 마우스 커서 숨김 */
         }
         #ui-panel {
             position: absolute;
@@ -101,6 +102,7 @@ game_code = """
             align-items: center;
             z-index: 30;
             color: white;
+            cursor: default;
         }
         .section-title {
             color: #00f0ff;
@@ -252,6 +254,8 @@ game_code = """
         let targetYaw = 0, targetPitch = 0;
         let currentYaw = 0, currentPitch = 0;
 
+        let mouseNDC = new THREE.Vector2(0, 0); // 마우스 커서 Raycast용 NDC 좌표
+
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
 
@@ -318,11 +322,20 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
+                // 마우스 커서 따라다니는 십자선 & 조준 처리
                 window.addEventListener('mousemove', (e) => {
                     if (!isGameStarted) return;
                     const rect = renderer.domElement.getBoundingClientRect();
+                    
+                    // 십자선을 마우스 위치로 이동
+                    const crosshair = document.getElementById('crosshair');
+                    crosshair.style.left = e.clientX + 'px';
+                    crosshair.style.top = e.clientY + 'px';
+
                     const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
                     const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                    mouseNDC.set(mouseX, mouseY);
 
                     targetYaw = -mouseX * 1.35;
                     targetPitch = mouseY * 0.75;
@@ -364,6 +377,11 @@ game_code = """
             // 움직이는 사람 타겟 4명 생성
             for (let i = 0; i < 4; i++) {
                 createHumanTarget();
+            }
+
+            // 원형 과녁 타겟 4개 생성
+            for (let i = 0; i < 4; i++) {
+                createDiscTarget();
             }
 
             isGameStarted = true;
@@ -529,6 +547,56 @@ game_code = """
             scene.add(camera);
         }
 
+        // 원형 과녁 타겟 생성 함수
+        function createDiscTarget() {
+            const discGroup = new THREE.Group();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#1c2338';
+            ctx.fillRect(0, 0, 256, 256);
+
+            const colors = ['#ff0055', '#00f0ff', '#ffffff', '#ff0055'];
+            const radii = [120, 90, 60, 30];
+
+            radii.forEach((r, idx) => {
+                ctx.beginPath();
+                ctx.arc(128, 128, r, 0, Math.PI * 2);
+                ctx.fillStyle = colors[idx];
+                ctx.fill();
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const discGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.06, 32);
+            const discMat = [
+                new THREE.MeshStandardMaterial({ color: 0x2b3552 }),
+                new THREE.MeshStandardMaterial({ map: texture, roughness: 0.1 }),
+                new THREE.MeshStandardMaterial({ color: 0x181e30 })
+            ];
+
+            const disc = new THREE.Mesh(discGeo, discMat);
+            disc.rotation.x = Math.PI / 2;
+            disc.userData = { type: 'disc' };
+            discGroup.add(disc);
+
+            discGroup.position.x = (Math.random() - 0.5) * 16;
+            discGroup.position.y = Math.random() * 3.2 + 0.8;
+            discGroup.position.z = -Math.random() * 20 - 5;
+
+            const targetObj = {
+                type: 'disc',
+                group: discGroup,
+                hp: 1, // 과녁은 1발에 즉시 파괴
+                speed: 0
+            };
+
+            scene.add(discGroup);
+            targets.push(targetObj);
+        }
+
         // 사람 마네킹 생성 함수 (머리 1발 / 몸통 4발 판정)
         function createHumanTarget() {
             const humanGroup = new THREE.Group();
@@ -579,6 +647,7 @@ game_code = """
             humanGroup.position.set(posX, 0, posZ);
 
             const targetObj = {
+                type: 'human',
                 group: humanGroup,
                 hp: 4, // 기본 몸통 HP = 4
                 speed: (Math.random() * 0.04 + 0.03) * (Math.random() > 0.5 ? 1 : -1),
@@ -612,14 +681,15 @@ game_code = """
 
             const raycaster = new THREE.Raycaster();
             raycaster.far = Infinity;
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            // 마우스 커서 위치를 향해 사격 (마우스 추적 사격)
+            raycaster.setFromCamera(mouseNDC, camera);
 
             const intersects = raycaster.intersectObjects(scene.children, true);
 
             for (let i = 0; i < intersects.length; i++) {
                 const hitMesh = intersects[i].object;
                 
-                // 사람 타겟 피격 확인
+                // 피격 타겟 확인 (사람 또는 과녁)
                 let hitTargetIndex = -1;
                 for (let t = 0; t < targets.length; t++) {
                     if (targets[t].group === hitMesh.parent || targets[t].group === hitMesh.parent?.parent) {
@@ -632,25 +702,37 @@ game_code = """
                     const target = targets[hitTargetIndex];
                     hits++;
 
-                    // 머리 피격 시 즉시 사망(HP 4 감소), 몸통/팔다리 피격 시 HP 1 감소
-                    if (hitMesh.userData.type === 'head') {
-                        target.hp -= 4;
-                    } else {
-                        target.hp -= 1;
+                    if (target.type === 'disc') {
+                        target.hp = 0; // 과녁은 1발에 파괴
+                    } else if (target.type === 'human') {
+                        // 머리 피격 시 즉시 사망(HP 4 감소), 몸통/팔다리 피격 시 HP 1 감소
+                        if (hitMesh.userData.type === 'head') {
+                            target.hp -= 4;
+                        } else {
+                            target.hp -= 1;
+                        }
                     }
 
                     // 피격 반사 피드백
-                    hitMesh.material.emissive = new THREE.Color(0xff0000);
-                    setTimeout(() => {
-                        if (hitMesh.material) hitMesh.material.emissive = new THREE.Color(0x000000);
-                    }, 60);
+                    if (hitMesh.material && hitMesh.material.emissive) {
+                        hitMesh.material.emissive = new THREE.Color(0xff0000);
+                        setTimeout(() => {
+                            if (hitMesh.material) hitMesh.material.emissive = new THREE.Color(0x000000);
+                        }, 60);
+                    }
 
-                    // HP 모두 소모 시 타겟 제거 및 신규 스폰
+                    // HP 모두 소모 시 타겟 제거 및 동일 타입 재생성
                     if (target.hp <= 0) {
                         scene.remove(target.group);
+                        const targetType = target.type;
                         targets.splice(hitTargetIndex, 1);
                         score += 100;
-                        createHumanTarget(); // 즉시 리스폰 (4명 유지)
+
+                        if (targetType === 'human') {
+                            createHumanTarget();
+                        } else if (targetType === 'disc') {
+                            createDiscTarget();
+                        }
                     }
 
                     updateUI();
@@ -737,9 +819,11 @@ game_code = """
 
                 // 사람 타겟 좌우 왕복 이동 애니메이션
                 targets.forEach(t => {
-                    t.group.position.x += t.speed;
-                    if (t.group.position.x > t.maxX || t.group.position.x < t.minX) {
-                        t.speed *= -1; // 방향 전환
+                    if (t.type === 'human') {
+                        t.group.position.x += t.speed;
+                        if (t.group.position.x > t.maxX || t.group.position.x < t.minX) {
+                            t.speed *= -1; // 방향 전환
+                        }
                     }
                 });
             }
@@ -753,4 +837,4 @@ game_code = """
 </html>
 """
 
-components.html(game_code, height=540)
+components.html(game_code, height=540
