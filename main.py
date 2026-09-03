@@ -1,15 +1,16 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="3D AimLab - Realistic Guns & Moving Human Targets", layout="centered")
+st.set_page_config(page_title="3D AimLab - Realistic Guns & Targets", layout="centered")
 
 st.title("⚡ 3D AimLab (리얼 총기 & 이동 사람 타겟 & 원형 과녁)")
-st.caption("현실적인 총기 모델링, 움직이는 사람 타겟, 원형 과녁 및 마우스 커서 추적 십자선이 적용되었습니다.")
+st.caption("마우스 커서를 따라다니는 십자선과 지속적으로 재생성되는 원형 과녁이 적용되었습니다.")
 
 game_code = """
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <style>
         body {
             margin: 0;
@@ -17,7 +18,7 @@ game_code = """
             background-color: #0e111a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
-            cursor: none; /* 게임 내 마우스 커서 숨김 */
+            cursor: none;
         }
         #ui-panel {
             position: absolute;
@@ -65,14 +66,12 @@ game_code = """
         }
         #crosshair {
             position: absolute;
-            top: 50%;
-            left: 50%;
             width: 12px;
             height: 12px;
-            transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 15;
+            z-index: 20;
             display: none;
+            transform: translate(-50%, -50%);
         }
         #crosshair::before, #crosshair::after {
             content: '';
@@ -167,7 +166,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">CYBERPUNK AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 장전</p>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 조준 및 십자선 이동 | <b>좌클릭 또는 [F] 키: 사격</b> | [R]: 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -195,47 +194,51 @@ game_code = """
 
         function playGunSound(type) {
             if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-            const bufferSize = audioCtx.sampleRate * 0.25;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = buffer.getChannelData(0);
+            try {
+                const now = audioCtx.currentTime;
+                const bufferSize = audioCtx.sampleRate * 0.2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = buffer.getChannelData(0);
 
-            for (let i = 0; i < bufferSize; i++) {
-                output[i] = Math.random() * 2 - 1;
-            }
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
 
-            const noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
 
-            const filter = audioCtx.createBiquadFilter();
-            const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                const gain = audioCtx.createGain();
 
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(type === 'kar98k' ? 700 : (type === 'ak47' ? 1100 : 1400), now);
-            filter.frequency.exponentialRampToValueAtTime(80, now + 0.25);
-            gain.gain.setValueAtTime(1.5, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(type === 'kar98k' ? 600 : (type === 'ak47' ? 1000 : 1300), now);
+                filter.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+                gain.gain.setValueAtTime(1.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
-            noise.connect(filter);
-            filter.connect(gain);
-            gain.connect(audioCtx.destination);
-            noise.start(now);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start(now);
+            } catch(e){}
         }
 
         function playReloadSound() {
             if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(450, now);
-            osc.frequency.linearRampToValueAtTime(180, now + 0.3);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.35);
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch(e){}
         }
 
         let scene, camera, renderer;
@@ -254,7 +257,7 @@ game_code = """
         let targetYaw = 0, targetPitch = 0;
         let currentYaw = 0, currentPitch = 0;
 
-        let mouseNDC = new THREE.Vector2(0, 0); // 마우스 커서 Raycast용 NDC 좌표
+        let mouseNDC = new THREE.Vector2(0, 0);
 
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
@@ -294,7 +297,7 @@ game_code = """
                 scene.background = new THREE.Color(0x0e111a);
                 scene.fog = new THREE.FogExp2(0x0e111a, 0.005);
 
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 5000);
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
                 camera.position.set(0, 1.6, 5);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -308,10 +311,6 @@ game_code = """
                 dirLight.position.set(10, 20, 10);
                 scene.add(dirLight);
 
-                const cyanLight = new THREE.PointLight(0x00f0ff, 2.0, 40);
-                cyanLight.position.set(0, 6, 0);
-                scene.add(cyanLight);
-
                 const floorGeo = new THREE.PlaneGeometry(200, 200);
                 const floorMat = new THREE.MeshStandardMaterial({ color: 0x141824, roughness: 0.2 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -322,12 +321,11 @@ game_code = """
                 gridHelper.position.y = 0.01;
                 scene.add(gridHelper);
 
-                // 마우스 커서 따라다니는 십자선 & 조준 처리
+                // 마우스 추적 및 조준 이벤트
                 window.addEventListener('mousemove', (e) => {
                     if (!isGameStarted) return;
                     const rect = renderer.domElement.getBoundingClientRect();
                     
-                    // 십자선을 마우스 위치로 이동
                     const crosshair = document.getElementById('crosshair');
                     crosshair.style.left = e.clientX + 'px';
                     crosshair.style.top = e.clientY + 'px';
@@ -337,8 +335,8 @@ game_code = """
 
                     mouseNDC.set(mouseX, mouseY);
 
-                    targetYaw = -mouseX * 1.35;
-                    targetPitch = mouseY * 0.75;
+                    targetYaw = -mouseX * 1.2;
+                    targetPitch = mouseY * 0.6;
                 });
 
                 window.addEventListener('keydown', (e) => {
@@ -357,7 +355,7 @@ game_code = """
                     if (k in keys) keys[k] = false;
                 });
 
-                window.addEventListener('mousedown', (e) => {
+                renderer.domElement.addEventListener('mousedown', (e) => {
                     if (e.button === 0 && isGameStarted) {
                         shoot();
                     }
@@ -374,7 +372,7 @@ game_code = """
             targets.forEach(t => scene.remove(t.group));
             targets = [];
             
-            // 움직이는 사람 타겟 4명 생성
+            // 사람 타겟 4명 생성
             for (let i = 0; i < 4; i++) {
                 createHumanTarget();
             }
@@ -403,7 +401,6 @@ game_code = """
             const famasMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.6, metalness: 0.2 });
 
             if (type === 'ak47') {
-                // 리얼 AK-47
                 const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.42), steelMat);
                 weaponGroup.add(receiver);
 
@@ -422,45 +419,19 @@ game_code = """
                 handguardLower.position.set(0, -0.01, -0.32);
                 weaponGroup.add(handguardLower);
 
-                const handguardUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 12), woodMat);
-                handguardUpper.rotation.x = Math.PI / 2;
-                handguardUpper.position.set(0, 0.035, -0.32);
-                weaponGroup.add(handguardUpper);
-
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.05), woodMat);
-                grip.position.set(0, -0.1, 0.12);
-                grip.rotation.x = -0.4;
-                weaponGroup.add(grip);
-
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.65, 12), steelMat);
                 barrel.rotation.x = Math.PI / 2;
                 barrel.position.set(0, 0.015, -0.62);
                 weaponGroup.add(barrel);
 
-                const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.35, 12), darkSteelMat);
-                gasTube.rotation.x = Math.PI / 2;
-                gasTube.position.set(0, 0.045, -0.45);
-                weaponGroup.add(gasTube);
-
-                const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.06, 0.03), steelMat);
-                frontSight.position.set(0, 0.055, -0.88);
-                weaponGroup.add(frontSight);
-
-                // 리얼 곡선 탄창
                 magazineMesh = new THREE.Group();
                 const m1 = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.12, 0.07), darkSteelMat);
-                m1.position.set(0, 0, 0);
                 m1.rotation.x = -0.35;
-                const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.12, 0.065), darkSteelMat);
-                m2.position.set(0, -0.09, -0.035);
-                m2.rotation.x = -0.65;
                 magazineMesh.add(m1);
-                magazineMesh.add(m2);
                 magazineMesh.position.set(0, -0.1, -0.05);
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                // 리얼 KAR98K
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.068, 1.25), darkWoodMat);
                 stock.position.set(0, -0.02, -0.2);
                 weaponGroup.add(stock);
@@ -470,33 +441,10 @@ game_code = """
                 barrel.position.set(0, 0.022, -0.72);
                 weaponGroup.add(barrel);
 
-                const boltReceiver = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.25, 12), steelMat);
-                boltReceiver.rotation.x = Math.PI / 2;
-                boltReceiver.position.set(0, 0.025, 0.05);
-                weaponGroup.add(boltReceiver);
-
-                const boltHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 8), darkSteelMat);
-                boltHandle.rotation.z = Math.PI / 3;
-                boltHandle.position.set(0.04, 0.02, 0.08);
-                weaponGroup.add(boltHandle);
-
-                const boltKnob = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 8), darkSteelMat);
-                boltKnob.position.set(0.075, -0.01, 0.08);
-                weaponGroup.add(boltKnob);
-
-                // 스코프 및 마운트
-                const scopeMount = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.15), darkSteelMat);
-                scopeMount.position.set(0, 0.065, -0.12);
-                weaponGroup.add(scopeMount);
-
                 const scopeBody = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.42, 16), darkSteelMat);
                 scopeBody.rotation.x = Math.PI / 2;
                 scopeBody.position.set(0, 0.09, -0.12);
                 weaponGroup.add(scopeBody);
-
-                const triggerGuard = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.12), steelMat);
-                triggerGuard.position.set(0, -0.06, 0.05);
-                weaponGroup.add(triggerGuard);
 
                 magazineMesh = new THREE.Group();
                 const dummy = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.04, 0.08), steelMat);
@@ -505,7 +453,6 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                // 리얼 FAMAS Bullpup
                 const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.68), famasMat);
                 weaponGroup.add(mainBody);
 
@@ -518,17 +465,6 @@ game_code = """
                 barrel.position.set(0, 0.01, -0.52);
                 weaponGroup.add(barrel);
 
-                const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.08, 12), darkSteelMat);
-                flashHider.rotation.x = Math.PI / 2;
-                flashHider.position.set(0, 0.01, -0.72);
-                weaponGroup.add(flashHider);
-
-                const handguardGrip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.1, 0.06), famasMat);
-                handguardGrip.position.set(0, -0.08, -0.18);
-                handguardGrip.rotation.x = -0.2;
-                weaponGroup.add(handguardGrip);
-
-                // 불펍 후방 탄창
                 magazineMesh = new THREE.Group();
                 const mag = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.16, 0.07), darkSteelMat);
                 magazineMesh.add(mag);
@@ -536,10 +472,10 @@ game_code = """
                 weaponGroup.add(magazineMesh);
             }
 
-            const flashGeo = new THREE.OctahedronGeometry(0.12, 0);
+            const flashGeo = new THREE.OctahedronGeometry(0.1, 0);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0 });
             muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
-            muzzleFlashMesh.position.set(0, 0.01, -0.92);
+            muzzleFlashMesh.position.set(0, 0.01, -0.9);
             weaponGroup.add(muzzleFlashMesh);
 
             weaponGroup.position.set(0.22, -0.22, -0.52);
@@ -570,7 +506,7 @@ game_code = """
             });
 
             const texture = new THREE.CanvasTexture(canvas);
-            const discGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.06, 32);
+            const discGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.05, 32);
             const discMat = [
                 new THREE.MeshStandardMaterial({ color: 0x2b3552 }),
                 new THREE.MeshStandardMaterial({ map: texture, roughness: 0.1 }),
@@ -583,13 +519,13 @@ game_code = """
             discGroup.add(disc);
 
             discGroup.position.x = (Math.random() - 0.5) * 16;
-            discGroup.position.y = Math.random() * 3.2 + 0.8;
-            discGroup.position.z = -Math.random() * 20 - 5;
+            discGroup.position.y = Math.random() * 3.0 + 0.8;
+            discGroup.position.z = -Math.random() * 18 - 5;
 
             const targetObj = {
                 type: 'disc',
                 group: discGroup,
-                hp: 1, // 과녁은 1발에 즉시 파괴
+                hp: 1,
                 speed: 0
             };
 
@@ -597,51 +533,49 @@ game_code = """
             targets.push(targetObj);
         }
 
-        // 사람 마네킹 생성 함수 (머리 1발 / 몸통 4발 판정)
+        // 사람 마네킹 생성 함수
         function createHumanTarget() {
             const humanGroup = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0x3a4b6e, roughness: 0.5 });
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 }); // 머리 강조
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xff0055, roughness: 0.3 });
 
-            // 머리 (Head) - 1발 분량
-            const headGeo = new THREE.SphereGeometry(0.22, 16, 16);
+            // 머리
+            const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
             const headMesh = new THREE.Mesh(headGeo, headMat);
-            headMesh.position.y = 1.65;
+            headMesh.position.y = 1.6;
             headMesh.userData = { type: 'head' };
             humanGroup.add(headMesh);
 
-            // 몸통 (Body) - 4발 분량
-            const bodyGeo = new THREE.BoxGeometry(0.5, 0.75, 0.28);
+            // 몸통
+            const bodyGeo = new THREE.BoxGeometry(0.48, 0.72, 0.26);
             const bodyMesh = new THREE.Mesh(bodyGeo, skinMat);
-            bodyMesh.position.y = 1.05;
+            bodyMesh.position.y = 1.0;
             bodyMesh.userData = { type: 'body' };
             humanGroup.add(bodyMesh);
 
-            // 팔 (Arms)
-            const armGeo = new THREE.BoxGeometry(0.14, 0.65, 0.14);
+            // 팔 & 다리
+            const armGeo = new THREE.BoxGeometry(0.14, 0.6, 0.14);
             const leftArm = new THREE.Mesh(armGeo, skinMat);
-            leftArm.position.set(-0.36, 1.05, 0);
+            leftArm.position.set(-0.35, 1.0, 0);
             leftArm.userData = { type: 'body' };
             humanGroup.add(leftArm);
 
             const rightArm = new THREE.Mesh(armGeo, skinMat);
-            rightArm.position.set(0.36, 1.05, 0);
+            rightArm.position.set(0.35, 1.0, 0);
             rightArm.userData = { type: 'body' };
             humanGroup.add(rightArm);
 
-            // 다리 (Legs)
-            const legGeo = new THREE.BoxGeometry(0.18, 0.7, 0.18);
+            const legGeo = new THREE.BoxGeometry(0.18, 0.65, 0.18);
             const leftLeg = new THREE.Mesh(legGeo, skinMat);
-            leftLeg.position.set(-0.16, 0.35, 0);
+            leftLeg.position.set(-0.15, 0.32, 0);
             leftLeg.userData = { type: 'body' };
             humanGroup.add(leftLeg);
 
             const rightLeg = new THREE.Mesh(legGeo, skinMat);
-            rightLeg.position.set(0.16, 0.35, 0);
+            rightLeg.position.set(0.15, 0.32, 0);
             rightLeg.userData = { type: 'body' };
             humanGroup.add(rightLeg);
 
-            // 위치 및 이동 데이터 초기화
             const posX = (Math.random() - 0.5) * 14;
             const posZ = -Math.random() * 15 - 6;
             humanGroup.position.set(posX, 0, posZ);
@@ -649,8 +583,8 @@ game_code = """
             const targetObj = {
                 type: 'human',
                 group: humanGroup,
-                hp: 4, // 기본 몸통 HP = 4
-                speed: (Math.random() * 0.04 + 0.03) * (Math.random() > 0.5 ? 1 : -1),
+                hp: 4,
+                speed: (Math.random() * 0.03 + 0.02) * (Math.random() > 0.5 ? 1 : -1),
                 minX: posX - 4,
                 maxX: posX + 4
             };
@@ -673,15 +607,15 @@ game_code = """
             totalShots++;
             updateUI();
 
-            recoilZ = 0.16;
-            recoilRotX = 0.14;
+            recoilZ = 0.14;
+            recoilRotX = 0.12;
 
-            muzzleFlashMesh.material.opacity = 1.0;
-            setTimeout(() => { muzzleFlashMesh.material.opacity = 0; }, 35);
+            if (muzzleFlashMesh) {
+                muzzleFlashMesh.material.opacity = 1.0;
+                setTimeout(() => { if (muzzleFlashMesh) muzzleFlashMesh.material.opacity = 0; }, 35);
+            }
 
             const raycaster = new THREE.Raycaster();
-            raycaster.far = Infinity;
-            // 마우스 커서 위치를 향해 사격 (마우스 추적 사격)
             raycaster.setFromCamera(mouseNDC, camera);
 
             const intersects = raycaster.intersectObjects(scene.children, true);
@@ -689,7 +623,6 @@ game_code = """
             for (let i = 0; i < intersects.length; i++) {
                 const hitMesh = intersects[i].object;
                 
-                // 피격 타겟 확인 (사람 또는 과녁)
                 let hitTargetIndex = -1;
                 for (let t = 0; t < targets.length; t++) {
                     if (targets[t].group === hitMesh.parent || targets[t].group === hitMesh.parent?.parent) {
@@ -703,25 +636,15 @@ game_code = """
                     hits++;
 
                     if (target.type === 'disc') {
-                        target.hp = 0; // 과녁은 1발에 파괴
+                        target.hp = 0;
                     } else if (target.type === 'human') {
-                        // 머리 피격 시 즉시 사망(HP 4 감소), 몸통/팔다리 피격 시 HP 1 감소
-                        if (hitMesh.userData.type === 'head') {
+                        if (hitMesh.userData && hitMesh.userData.type === 'head') {
                             target.hp -= 4;
                         } else {
                             target.hp -= 1;
                         }
                     }
 
-                    // 피격 반사 피드백
-                    if (hitMesh.material && hitMesh.material.emissive) {
-                        hitMesh.material.emissive = new THREE.Color(0xff0000);
-                        setTimeout(() => {
-                            if (hitMesh.material) hitMesh.material.emissive = new THREE.Color(0x000000);
-                        }, 60);
-                    }
-
-                    // HP 모두 소모 시 타겟 제거 및 동일 타입 재생성
                     if (target.hp <= 0) {
                         scene.remove(target.group);
                         const targetType = target.type;
@@ -746,33 +669,28 @@ game_code = """
             isReloading = true;
             playReloadSound();
 
-            const initY = magazineMesh.position.y;
+            const initY = magazineMesh ? magazineMesh.position.y : 0;
             let progress = 0;
 
             const reloadInterval = setInterval(() => {
-                progress += 0.04;
+                progress += 0.05;
 
-                if (progress <= 0.4) {
-                    const p = progress / 0.4;
-                    magazineMesh.position.y = initY - p * 0.25;
-                    magazineMesh.rotation.y = 0;
-                } else if (progress <= 0.7) {
-                    const p = (progress - 0.4) / 0.3;
-                    magazineMesh.rotation.y = p * Math.PI;
-                } else if (progress <= 1.0) {
-                    const p = (progress - 0.7) / 0.3;
-                    magazineMesh.position.y = (initY - 0.25) + p * 0.25;
-                    magazineMesh.rotation.y = Math.PI * (1 + p);
-                } else {
+                if (magazineMesh) {
+                    if (progress <= 0.4) {
+                        magazineMesh.position.y = initY - (progress / 0.4) * 0.2;
+                    } else if (progress <= 1.0) {
+                        magazineMesh.position.y = initY;
+                    }
+                }
+
+                if (progress >= 1.0) {
                     clearInterval(reloadInterval);
-                    magazineMesh.position.y = initY;
-                    magazineMesh.rotation.y = 0;
                     ammo = maxAmmo;
                     isReloading = false;
                     document.getElementById('reloadMsg').style.display = 'none';
                     updateUI();
                 }
-            }, 20);
+            }, 30);
         }
 
         function updateUI() {
@@ -787,7 +705,6 @@ game_code = """
             requestAnimationFrame(animate);
 
             if (isGameStarted) {
-                // 플레이어 이동 조작
                 const moveVector = new THREE.Vector3(0, 0, 0);
                 if (keys.w) moveVector.z -= 1;
                 if (keys.s) moveVector.z += 1;
@@ -810,19 +727,19 @@ game_code = """
                 camera.rotation.y = currentYaw;
                 camera.rotation.x = currentPitch;
 
-                // 총기 반동
                 if (recoilZ > 0) recoilZ -= 0.02;
                 if (recoilRotX > 0) recoilRotX -= 0.015;
 
-                weaponGroup.position.z = -0.52 + Math.max(0, recoilZ);
-                weaponGroup.rotation.x = Math.max(0, recoilRotX);
+                if (weaponGroup) {
+                    weaponGroup.position.z = -0.52 + Math.max(0, recoilZ);
+                    weaponGroup.rotation.x = Math.max(0, recoilRotX);
+                }
 
-                // 사람 타겟 좌우 왕복 이동 애니메이션
                 targets.forEach(t => {
                     if (t.type === 'human') {
                         t.group.position.x += t.speed;
                         if (t.group.position.x > t.maxX || t.group.position.x < t.minX) {
-                            t.speed *= -1; // 방향 전환
+                            t.speed *= -1;
                         }
                     }
                 });
@@ -837,4 +754,4 @@ game_code = """
 </html>
 """
 
-components.html(game_code, height=540
+components.html(game_code, height=540)
