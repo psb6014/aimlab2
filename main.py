@@ -1,10 +1,10 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="3D AimLab - Infinite Range Shot", layout="centered")
+st.set_page_config(page_title="3D AimLab - KAR98K Zoom & Closer Targets", layout="centered")
 
-st.title("⚡ 3D AimLab (총알 사거리 무한 적용)")
-st.caption("총알 사거리가 무한대로 설정되어 멀리 있는 과녁도 제자리에서 즉시 맞출 수 있습니다.")
+st.title("⚡ 3D AimLab (KAR98K Zoom 기능 적용)")
+st.caption("과녁 배치가 가까워졌으며, KAR98K 선택 시 마우스 우클릭으로 줌인/줌아웃이 가능합니다.")
 
 game_code = """
 <!DOCTYPE html>
@@ -152,7 +152,7 @@ game_code = """
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body>
+<body oncontextmenu="return false;">
     <div id="ui-panel">
         <button class="main-menu-btn" onclick="goToMainMenu()">🏠 메인으로 (E)</button>
         <div>점수: <span id="score" style="color:#00f0ff">0</span> | 명중률: <span id="accuracy" style="color:#00ff88">100</span>%</div>
@@ -165,7 +165,7 @@ game_code = """
 
     <div id="startOverlay">
         <h1 style="color: #00f0ff; text-shadow: 0 0 20px rgba(0,240,255,0.8); margin-bottom: 2px; font-size: 32px;">CYBERPUNK AIMLAB</h1>
-        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 키 또는 좌클릭: 사격</b> | [R]: 탄창 회전 장전</p>
+        <p style="color: #a0b0d0; margin-bottom: 15px; font-size: 14px;">마우스 이동: 시선/총기 조준 | <b>[F] 또는 좌클릭: 사격</b> | <b>[우클릭]: KAR98K Zoom</b> | [R]: 장전</p>
 
         <div class="section-title">GUN SELECT</div>
         <div class="btn-container">
@@ -260,6 +260,10 @@ game_code = """
         let targetYaw = 0, targetPitch = 0;
         let currentYaw = 0, currentPitch = 0;
 
+        let isZoomed = false;
+        const defaultFOV = 75;
+        const zoomFOV = 30;
+
         const keys = { w: false, a: false, s: false, d: false };
         const moveSpeed = 0.12;
 
@@ -295,6 +299,7 @@ game_code = """
             hits = 0;
             ammo = maxAmmo;
             isReloading = false;
+            isZoomed = false;
             targetYaw = 0;
             targetPitch = 0;
             currentYaw = 0;
@@ -307,7 +312,7 @@ game_code = """
                 scene.background = new THREE.Color(0x0e111a);
                 scene.fog = new THREE.FogExp2(0x0e111a, 0.005);
 
-                camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 5000);
+                camera = new THREE.PerspectiveCamera(defaultFOV, window.innerWidth / 500, 0.1, 5000);
                 camera.position.set(0, 1.6, 5);
 
                 renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -362,14 +367,22 @@ game_code = """
                 });
 
                 window.addEventListener('mousedown', (e) => {
-                    if (e.button === 0 && isGameStarted) {
+                    if (!isGameStarted) return;
+                    if (e.button === 0) {
                         shoot();
+                    } else if (e.button === 2) {
+                        // KAR98K 전용 줌 기능
+                        if (selectedWeapon === 'kar98k') {
+                            isZoomed = !isZoomed;
+                        }
                     }
                 });
 
                 animate();
             }
 
+            camera.fov = defaultFOV;
+            camera.updateProjectionMatrix();
             camera.position.set(0, 1.6, 5);
 
             if (weaponGroup) camera.remove(weaponGroup);
@@ -387,6 +400,11 @@ game_code = """
 
         function goToMainMenu() {
             isGameStarted = false;
+            isZoomed = false;
+            if (camera) {
+                camera.fov = defaultFOV;
+                camera.updateProjectionMatrix();
+            }
             document.getElementById('crosshair').style.display = 'none';
             document.getElementById('startOverlay').style.display = 'flex';
         }
@@ -556,15 +574,14 @@ game_code = """
             disc.rotation.x = Math.PI / 2;
             targetGroup.add(disc);
 
-            targetGroup.position.x = (Math.random() - 0.5) * 16;
-            targetGroup.position.y = Math.random() * 3.2 + 0.8;
-            targetGroup.position.z = -Math.random() * 20 - 5; // 일반적인 적정 거리 배치
+            targetGroup.position.x = (Math.random() - 0.5) * 10;
+            targetGroup.position.y = Math.random() * 2.2 + 0.8;
+            targetGroup.position.z = -Math.random() * 9 - 3; // 과녁 거리를 가깝게 조정 (-3 ~ -12 범위)
 
             scene.add(targetGroup);
             targets.push(targetGroup);
         }
 
-        // 🔥 총알 사거리 제한 해제 (Raycaster 사거리 = 무한)
         function shoot() {
             if (isReloading || !isGameStarted) return;
 
@@ -586,7 +603,7 @@ game_code = """
             setTimeout(() => { muzzleFlashMesh.material.opacity = 0; }, 35);
 
             const raycaster = new THREE.Raycaster();
-            raycaster.far = Infinity; // 🔥 거리 제한 없이 카메라 직선상의 모든 오브젝트 감지
+            raycaster.far = Infinity;
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
             const intersects = raycaster.intersectObjects(scene.children, true);
@@ -652,6 +669,13 @@ game_code = """
             requestAnimationFrame(animate);
 
             if (isGameStarted) {
+                // FOV 부드러운 전환 (줌인/줌아웃)
+                const targetFOV = (selectedWeapon === 'kar98k' && isZoomed) ? zoomFOV : defaultFOV;
+                if (Math.abs(camera.fov - targetFOV) > 0.1) {
+                    camera.fov += (targetFOV - camera.fov) * 0.2;
+                    camera.updateProjectionMatrix();
+                }
+
                 const moveVector = new THREE.Vector3(0, 0, 0);
                 if (keys.w) moveVector.z -= 1;
                 if (keys.s) moveVector.z += 1;
