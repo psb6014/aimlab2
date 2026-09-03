@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="3D AimLab - Realistic Guns & Targets", layout="centered")
+st.set_page_config(page_title="3D AimLab - High Detail Guns", layout="centered")
 
-st.title("⚡ 3D AimLab (초고화질 총기 디테일 적용)")
+st.title("⚡ 3D AimLab (총기 디테일 전면 재설계)")
 
 game_code = """
 <!DOCTYPE html>
@@ -397,7 +397,6 @@ game_code = """
             const polymerMat = new THREE.MeshStandardMaterial({ color: 0x1f232b, roughness: 0.5, metalness: 0.1 });
 
             if (type === 'ak47') {
-                // 리얼 AK-47 디테일 구축
                 const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.42), metalMat);
                 weaponGroup.add(receiver);
 
@@ -452,7 +451,6 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'kar98k') {
-                // 리얼 KAR98K 저격총 디테일 구축
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 1.28), darkWoodMat);
                 stock.position.set(0, -0.02, -0.2);
                 weaponGroup.add(stock);
@@ -488,28 +486,55 @@ game_code = """
                 weaponGroup.add(magazineMesh);
 
             } else if (type === 'famas') {
-                // 리얼 FAMAS 불펍 소총 디테일 구축
-                const mainBody = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.13, 0.7), polymerMat);
-                weaponGroup.add(mainBody);
+                // FAMAS 정밀 구조 재설계
+                const lowerReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.08, 0.58), polymerMat);
+                lowerReceiver.position.set(0, -0.02, 0.05);
+                weaponGroup.add(lowerReceiver);
 
-                const carryHandle = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.11, 0.54), polymerMat);
-                carryHandle.position.set(0, 0.11, -0.02);
-                weaponGroup.add(carryHandle);
+                const upperReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, 0.52), polymerMat);
+                upperReceiver.position.set(0, 0.04, -0.02);
+                weaponGroup.add(upperReceiver);
 
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.48, 16), metalMat);
+                // FAMAS 대형 운반 손잡이 (Carry Handle)
+                const handleTop = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.025, 0.48), polymerMat);
+                handleTop.position.set(0, 0.15, -0.05);
+                weaponGroup.add(handleTop);
+
+                const handleFrontPillar = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.08, 0.04), polymerMat);
+                handleFrontPillar.position.set(0, 0.10, -0.26);
+                weaponGroup.add(handleFrontPillar);
+
+                const handleBackPillar = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.08, 0.04), polymerMat);
+                handleBackPillar.position.set(0, 0.10, 0.16);
+                weaponGroup.add(handleBackPillar);
+
+                // 권총 손잡이 및 방아쇠 울
+                const pistolGrip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.05), polymerMat);
+                pistolGrip.position.set(0, -0.1, -0.08);
+                pistolGrip.rotation.x = -0.3;
+                weaponGroup.add(pistolGrip);
+
+                const triggerGuard = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.12), metalMat);
+                triggerGuard.position.set(0, -0.08, -0.14);
+                weaponGroup.add(triggerGuard);
+
+                // 총열 및 소염기
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.52, 16), metalMat);
                 barrel.rotation.x = Math.PI / 2;
-                barrel.position.set(0, 0.01, -0.54);
+                barrel.position.set(0, 0.025, -0.52);
                 weaponGroup.add(barrel);
 
-                const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.09, 12), darkMetalMat);
+                const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.08, 12), darkMetalMat);
                 flashHider.rotation.x = Math.PI / 2;
-                flashHider.position.set(0, 0.01, -0.75);
+                flashHider.position.set(0, 0.025, -0.76);
                 weaponGroup.add(flashHider);
 
+                // 후방 불펍 탄창
                 magazineMesh = new THREE.Group();
-                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.17, 0.075), darkMetalMat);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.16, 0.07), darkMetalMat);
+                mag.rotation.x = 0.1;
                 magazineMesh.add(mag);
-                magazineMesh.position.set(0, -0.13, 0.22);
+                magazineMesh.position.set(0, -0.12, 0.22);
                 weaponGroup.add(magazineMesh);
             }
 
